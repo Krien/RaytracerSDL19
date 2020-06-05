@@ -1,7 +1,8 @@
 #include "precomp.h"
 
-Shape::Shape(Vec3Df position, Material material)
+Shape::Shape(int id, Vec3Df position, Material material)
 {
+	Shape::id = id;
 	Shape::position = position;
 	Shape::material = material;
 }

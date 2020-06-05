@@ -1,7 +1,7 @@
 #include "precomp.h"
 
 
-Sphere::Sphere(Vec3Df position, Material material, float radius) : Shape(position, material)
+Sphere::Sphere(int id, Vec3Df position, Material material, float radius) : Shape(id, position, material)
 {
 	Sphere::radius = radius;
 	Sphere::radiusSq = radius * radius;
@@ -17,7 +17,7 @@ void Sphere::hit(Ray r, HitInfo* hit)
 		{
 			Vec3Df hitPos = r.origin + r.direction * Vec3Df(radius);
 			Vec3Df normal = normalize_vector(hitPos - position);
-			*hit = HitInfo{ -normal,hitPos,radius,material };
+			*hit = HitInfo{ -normal,hitPos,radius,material, id };
 		}
 	}
 	else
@@ -32,7 +32,7 @@ void Sphere::hit(Ray r, HitInfo* hit)
 			{
 				Vec3Df hitPos = r.origin + r.direction * Vec3Df(t);
 				Vec3Df normal = normalize_vector(hitPos - position);
-				*hit = HitInfo{ normal,hitPos,t,material };
+				*hit = HitInfo{ normal,hitPos,t,material, id };
 				int b = 0;
 			}
 		}

@@ -7,6 +7,7 @@ struct Material
 	Vec3Df ambientColor;
 	Vec3Df diffuseColor;
 	Vec3Df specularColor;
+	Vec3Df absorbtion;
 	float mirror;
 	float refracIndex;
 };
@@ -17,6 +18,7 @@ struct HitInfo {
 	Vec3Df hitPos;
 	float distance;
 	Material material;
+	int id;
 };
 
 struct Ray
@@ -24,6 +26,8 @@ struct Ray
 	Vec3Df origin;
 	Vec3Df direction;
 	float length;
+	float refracIndex =  1.000293f;
+	float refracIndex2 = 1.000586f;
 };
 
 class Renderer {

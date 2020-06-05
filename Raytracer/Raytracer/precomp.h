@@ -7,6 +7,7 @@
 #define RAYSCREEN_WIDTH 770
 #define RAYSCREEN_HEIGHT 1080
 #define PI 3.1415926
+#define E 2.7182818
 
 #define MALLOC64( x ) _aligned_malloc( x, 64 )
 
