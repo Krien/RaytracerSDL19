@@ -5,7 +5,8 @@ architectural issues. It would be better to recreate it from scratch in my opini
 Which is especially the reason to make it public, to allow it to be optimised and see what optimisations work.
 
 # NOTE
-This repo only contains the logic itself. This will NOT compile without adding libraries and setting a few settings.
+This repo (currently) only contains the logic itself. This will NOT compile without adding libraries and setting a few settings.
 First of all you need to have SDL2.lib and SDL2main.lib. It also makes use of Agner Fog's library VCL and the VCL add on 
 https://github.com/vectorclass and https://github.com/vectorclass/add-on/, which you will need to install by
 yourself. It works on both x64 and x86, only tested on Windows.  
+
