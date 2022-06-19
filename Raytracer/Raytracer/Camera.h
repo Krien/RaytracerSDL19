@@ -26,6 +26,7 @@ class Camera
 		Vec3Df getTopRight();
 		Vec3Df getBottomLeft();
 		Vec3Df getBottomRight();
+		Vec3Df getRelTopLeft();
 		// Movement
 		void moveInDirection(Vec3Df moveDirection);
 		void faceForward();

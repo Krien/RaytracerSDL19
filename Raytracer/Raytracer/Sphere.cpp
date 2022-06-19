@@ -1,23 +1,25 @@
 #include "precomp.h"
 
 
-Sphere::Sphere(int id, Vec3Df position, Material material, float radius) : Shape(id, position, material)
+Sphere::Sphere(int id, int mid, Vec3Df position, float radius) : Shape(id, mid)
 {
 	Sphere::radius = radius;
 	Sphere::radiusSq = radius * radius;
+	Sphere::position = position;
 }
 
 void Sphere::hit(Ray r, HitInfo* hit)
 {
 	Vec3Df c = position - r.origin;
+	float cLenSq = dot_product(c, c);
 	// In sphere
-	if (vector_length(c) < radius)
+	if (cLenSq < radiusSq)
 	{
 		if (radius < r.length)
 		{
 			Vec3Df hitPos = r.origin + r.direction * Vec3Df(radius);
 			Vec3Df normal = normalize_vector(hitPos - position);
-			*hit = HitInfo{ -normal,hitPos,radius,material, id };
+			*hit = HitInfo{ -normal,hitPos,radius,mat, id };
 		}
 	}
 	else
@@ -32,7 +34,7 @@ void Sphere::hit(Ray r, HitInfo* hit)
 			{
 				Vec3Df hitPos = r.origin + r.direction * Vec3Df(t);
 				Vec3Df normal = normalize_vector(hitPos - position);
-				*hit = HitInfo{ normal,hitPos,t,material, id };
+				*hit = HitInfo{ normal,hitPos,t,mat, id };
 				int b = 0;
 			}
 		}
@@ -42,8 +44,9 @@ void Sphere::hit(Ray r, HitInfo* hit)
 bool Sphere::fastHit(Ray r)
 {
 	Vec3Df c = position - r.origin;
+	float cLenSq = dot_product(c, c);
 	// In sphere
-	if (vector_length(c) < radius)
+	if (cLenSq < radiusSq)
 	{
 		if (radius < r.length)
 		{

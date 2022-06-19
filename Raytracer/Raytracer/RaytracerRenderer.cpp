@@ -4,6 +4,10 @@ RaytracerRenderer::RaytracerRenderer(Screen* screen) : Renderer(screen)
 {
 	width = screen->getWidth();
 	height = screen->getHeight();
+
+#if SIMD
+	rs = new RaySystem();
+#endif
 }
 
 RaytracerRenderer::~RaytracerRenderer()
@@ -17,53 +21,133 @@ void RaytracerRenderer::draw(int iteration)
 	shapeSize = shapes.size();
 	lights = currentScene->lights;
 	lightSize = lights.size();
-	Vec3Df rayStartDir = camera->getTopLeft();
-	Vec3Df xOffset = Vec3Df( (camera->getTopRight() - camera->getTopLeft()) / (width - 1));
-	Vec3Df yOffset = Vec3Df((camera->getBottomLeft() - camera->getTopLeft()) / (height - 1));
+	Vec3Df rayStartDir = camera->getRelTopLeft();
+	float xOffset = (float)SCREEN_DIMENSION * 2 / (width - 1);
+	float yOffset = (float)SCREEN_DIMENSION * 2 / (height - 1);
+	lastId = -1;
+#if SIMD
+	assert(rs != NULL);
+
+	float camX = camera->position.get_x();
+	float camY = camera->position.get_y();
+	float camZ = camera->position.get_z();
+	for (unsigned int i = 0; i < height * width / 8; i++)
+	{
+		rs->ox8[i].m256_f32[0] = camX;
+		rs->ox8[i].m256_f32[1] = camX;
+		rs->ox8[i].m256_f32[2] = camX;
+		rs->ox8[i].m256_f32[3] = camX;
+		rs->ox8[i].m256_f32[4] = camX;
+		rs->ox8[i].m256_f32[5] = camX;
+		rs->ox8[i].m256_f32[6] = camX;
+		rs->ox8[i].m256_f32[7] = camX;
+		rs->oy8[i].m256_f32[0] = camY;
+		rs->oy8[i].m256_f32[1] = camY;
+		rs->oy8[i].m256_f32[2] = camY;
+		rs->oy8[i].m256_f32[3] = camY;
+		rs->oy8[i].m256_f32[4] = camY;
+		rs->oy8[i].m256_f32[5] = camY;
+		rs->oy8[i].m256_f32[6] = camY;
+		rs->oy8[i].m256_f32[7] = camY;
+		rs->oz8[i].m256_f32[0] = camZ;
+		rs->oz8[i].m256_f32[1] = camZ;
+		rs->oz8[i].m256_f32[2] = camZ;
+		rs->oz8[i].m256_f32[3] = camZ;
+		rs->oz8[i].m256_f32[4] = camZ;
+		rs->oz8[i].m256_f32[5] = camZ;
+		rs->oz8[i].m256_f32[6] = camZ;
+		rs->oz8[i].m256_f32[7] = camZ;
+
+		int x = i * 8 % width;
+		int y = i * 8 / width;
+		Vec3Df d0 = rayStartDir + Vec3Df(x * xOffset, y * yOffset, 0);
+		Vec3Df d1 = d0 + Vec3Df(xOffset, 0, 0);
+		Vec3Df d2 = d1 + Vec3Df(xOffset, 0, 0);
+		Vec3Df d3 = d2 + Vec3Df(xOffset, 0, 0);
+		Vec3Df d4 = d3 + Vec3Df(xOffset, 0, 0);
+		Vec3Df d5 = d4 + Vec3Df(xOffset, 0, 0);
+		Vec3Df d6 = d5 + Vec3Df(xOffset, 0, 0);
+		Vec3Df d7 = d6 + Vec3Df(xOffset, 0, 0);
+		d0 = normalize_vector(d0);
+		d1 = normalize_vector(d1);
+		d2 = normalize_vector(d2);
+		d3 = normalize_vector(d3);
+		d4 = normalize_vector(d4);
+		d5 = normalize_vector(d5);
+		d6 = normalize_vector(d6);
+		d7 = normalize_vector(d7);
+		rs->dx8[i].m256_f32[0] = d0.get_x();
+		rs->dx8[i].m256_f32[1] = d1.get_x();
+		rs->dx8[i].m256_f32[2] = d2.get_x();
+		rs->dx8[i].m256_f32[3] = d3.get_x();
+		rs->dx8[i].m256_f32[4] = d4.get_x();
+		rs->dx8[i].m256_f32[5] = d5.get_x();
+		rs->dx8[i].m256_f32[6] = d6.get_x();
+		rs->dx8[i].m256_f32[7] = d7.get_x();
+		rs->dy8[i].m256_f32[0] = d0.get_y();
+		rs->dy8[i].m256_f32[1] = d1.get_y();
+		rs->dy8[i].m256_f32[2] = d2.get_y();
+		rs->dy8[i].m256_f32[3] = d3.get_y();
+		rs->dy8[i].m256_f32[4] = d4.get_y();
+		rs->dy8[i].m256_f32[5] = d5.get_y();
+		rs->dy8[i].m256_f32[6] = d6.get_y();
+		rs->dy8[i].m256_f32[7] = d7.get_y();
+		rs->dz8[i].m256_f32[0] = d0.get_z();
+		rs->dz8[i].m256_f32[1] = d1.get_z();
+		rs->dz8[i].m256_f32[2] = d2.get_z();
+		rs->dz8[i].m256_f32[3] = d3.get_z();
+		rs->dz8[i].m256_f32[4] = d4.get_z();
+		rs->dz8[i].m256_f32[5] = d5.get_z();
+		rs->dz8[i].m256_f32[6] = d6.get_z();
+		rs->dz8[i].m256_f32[7] = d7.get_z();
+
+		rs->len8[i].m256_f32[0] = 100;
+		rs->len8[i].m256_f32[1] = 100;
+		rs->len8[i].m256_f32[2] = 100;
+		rs->len8[i].m256_f32[3] = 100;
+		rs->len8[i].m256_f32[4] = 100;
+		rs->len8[i].m256_f32[5] = 100;
+		rs->len8[i].m256_f32[6] = 100;
+		rs->len8[i].m256_f32[7] = 100;
+	}
+
+	Vec3Df* traceResult = rs->trace();
+	for (unsigned int y = 0; y < height; y++)
+	{
+		for (unsigned int x = 0; x < width; x++)
+		{
+			Vec3Df argb = traceResult[y * width + x] * Vec3Df(255);
+
+			// Convert color
+			unsigned int xy = x * 4 + (y * width) * 4;
+			*(pixelBuffer + xy) = std::min((int)argb.extract(0), 255);
+			*(pixelBuffer + xy + 1) = std::min((int)argb.extract(1), 255);
+			*(pixelBuffer + xy + 2) = std::min((int)argb.extract(2), 255);
+			*(pixelBuffer + xy + 3) = 0;
+		}
+	}
+#else
 	#pragma unroll
 	for (unsigned int y = 0; y < height; y++)
 	{
-		for (unsigned int x = 0; x < width; x+=2)
+		for (unsigned int x = 0; x < width; x++)
 		{
-
-			// Pixel 1.....
 			// Make ray
-			Vec3Df direction = rayStartDir + Vec3Df(x)* xOffset  + Vec3Df(y)*yOffset;
-			direction -= camera->position;
+			Vec3Df direction = rayStartDir + Vec3Df(x * xOffset, y * yOffset, 0);
 			direction = normalize_vector(direction);
-			lastId = -1;
-			Ray r = { camera->position, direction, 100,1.000293f, 1.000586f };
+			Ray r = { camera->position, direction, 100 };
 			// Check for hits
 			Vec3Df argb = trace(r,0) * Vec3Df(255);
 
 			// Convert color
-			unsigned int xy = x*4 + (y * width)*4;
+			unsigned int xy = x * 4 + (y * width) * 4;
 			*(pixelBuffer + xy) = std::min((int)argb.extract(0), 255);
 			*(pixelBuffer + xy+1) = std::min((int)argb.extract(1), 255);
 			*(pixelBuffer + xy+2) = std::min((int)argb.extract(2), 255);
-			*(pixelBuffer + xy+3) = 0;
-
-
-			// Pixel 2....
-			// Make ray
-			direction = rayStartDir + Vec3Df(x+1) * xOffset + Vec3Df(y) * yOffset;
-			direction -= camera->position;
-			direction = normalize_vector(direction);
-			lastId = -1;
-			r = { camera->position, direction, 100,1.000293f, 1.000586f };
-			// Check for hits
-			argb = trace(r, 0) * Vec3Df(255);
-
-			// Pixel 1
-			// Convert color
-			xy = x * 4 + (y * width) * 4;
-			*(pixelBuffer + xy+4) = std::min((int)argb.extract(0),255);
-			*(pixelBuffer + xy + 5) = std::min((int)argb.extract(1),255);
-			*(pixelBuffer + xy + 6) = std::min((int)argb.extract(2), 255);
-			*(pixelBuffer + xy + 7) = 0;
-
+			*(pixelBuffer + xy + 3) = 0;
 		}
 	}
+#endif
 }
 
 Vec3Df RaytracerRenderer::trace(Ray ray, int depth)
@@ -195,7 +279,7 @@ Ray RaytracerRenderer::mirrorRay(Vec3Df originalDir, HitInfo hitSurface)
 {
 	Vec3Df mirrDir = originalDir - (hitSurface.normal * Vec3Df((2.0f * dot_product(originalDir, hitSurface.normal))));
 	mirrDir = normalize_vector(mirrDir);
-	Ray mirrorRay = Ray{ hitSurface.hitPos + Vec3Df(RAY_MIGRAINE) * mirrDir, mirrDir, 1000,1.000293f, 1.000586f };
+	Ray mirrorRay = Ray{ hitSurface.hitPos + Vec3Df(RAY_MIGRAINE) * mirrDir, mirrDir, 1000 };
 	return mirrorRay;
 }
 

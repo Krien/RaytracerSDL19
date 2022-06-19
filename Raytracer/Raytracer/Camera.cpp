@@ -51,6 +51,11 @@ Vec3Df Camera::getBottomRight()
 	return position + screenPlane.bottomRight;
 }
 
+Vec3Df Camera::getRelTopLeft()
+{
+	return screenPlane.topLeft;
+}
+
 void Camera::moveInDirection(Vec3Df moveDirection)
 {
 	// Not the most performance, but only called once every iteration at MOST.
