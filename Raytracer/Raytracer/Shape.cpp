@@ -30,3 +30,8 @@ bool Shape::fastHit(Ray r)
 {
 	return false;
 }
+
+Material Shape::getMat(int mid)
+{
+	return matLUT[mid];
+}

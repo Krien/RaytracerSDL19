@@ -40,6 +40,7 @@ typedef unsigned char Pixel;
 #include <string>
 #include <memory>
 #include <algorithm>
+#include <immintrin.h>
 
 // dependency headers
 #define SDL_MAIN_HANDLED

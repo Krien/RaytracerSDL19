@@ -3,7 +3,7 @@
 class RaySystem
 {
 public:
-	RaySystem();
+	RaySystem(Scene* scene);
 
 	const static int RAY_COUNT = SCREEN_WIDTH * SCREEN_WIDTH / 8;
 
@@ -14,6 +14,11 @@ public:
 	__m256 dy8[RAY_COUNT];
 	__m256 dz8[RAY_COUNT];
 	__m256 len8[RAY_COUNT];
+	__m256i depth8[RAY_COUNT];
 
 	Vec3Df* trace();
+	HitInfo* hit();
+
+private:
+	Scene* scene = NULL;
 };

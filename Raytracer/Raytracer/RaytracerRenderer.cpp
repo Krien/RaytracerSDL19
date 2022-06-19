@@ -6,7 +6,7 @@ RaytracerRenderer::RaytracerRenderer(Screen* screen) : Renderer(screen)
 	height = screen->getHeight();
 
 #if SIMD
-	rs = new RaySystem();
+	rs = new RaySystem(currentScene);
 #endif
 }
 
@@ -33,30 +33,9 @@ void RaytracerRenderer::draw(int iteration)
 	float camZ = camera->position.get_z();
 	for (unsigned int i = 0; i < height * width / 8; i++)
 	{
-		rs->ox8[i].m256_f32[0] = camX;
-		rs->ox8[i].m256_f32[1] = camX;
-		rs->ox8[i].m256_f32[2] = camX;
-		rs->ox8[i].m256_f32[3] = camX;
-		rs->ox8[i].m256_f32[4] = camX;
-		rs->ox8[i].m256_f32[5] = camX;
-		rs->ox8[i].m256_f32[6] = camX;
-		rs->ox8[i].m256_f32[7] = camX;
-		rs->oy8[i].m256_f32[0] = camY;
-		rs->oy8[i].m256_f32[1] = camY;
-		rs->oy8[i].m256_f32[2] = camY;
-		rs->oy8[i].m256_f32[3] = camY;
-		rs->oy8[i].m256_f32[4] = camY;
-		rs->oy8[i].m256_f32[5] = camY;
-		rs->oy8[i].m256_f32[6] = camY;
-		rs->oy8[i].m256_f32[7] = camY;
-		rs->oz8[i].m256_f32[0] = camZ;
-		rs->oz8[i].m256_f32[1] = camZ;
-		rs->oz8[i].m256_f32[2] = camZ;
-		rs->oz8[i].m256_f32[3] = camZ;
-		rs->oz8[i].m256_f32[4] = camZ;
-		rs->oz8[i].m256_f32[5] = camZ;
-		rs->oz8[i].m256_f32[6] = camZ;
-		rs->oz8[i].m256_f32[7] = camZ;
+		rs->ox8[i] = _mm256_set1_ps(camX);
+		rs->oy8[i] = _mm256_set1_ps(camY);
+		rs->oz8[i] = _mm256_set1_ps(camZ);
 
 		int x = i * 8 % width;
 		int y = i * 8 / width;
@@ -76,39 +55,12 @@ void RaytracerRenderer::draw(int iteration)
 		d5 = normalize_vector(d5);
 		d6 = normalize_vector(d6);
 		d7 = normalize_vector(d7);
-		rs->dx8[i].m256_f32[0] = d0.get_x();
-		rs->dx8[i].m256_f32[1] = d1.get_x();
-		rs->dx8[i].m256_f32[2] = d2.get_x();
-		rs->dx8[i].m256_f32[3] = d3.get_x();
-		rs->dx8[i].m256_f32[4] = d4.get_x();
-		rs->dx8[i].m256_f32[5] = d5.get_x();
-		rs->dx8[i].m256_f32[6] = d6.get_x();
-		rs->dx8[i].m256_f32[7] = d7.get_x();
-		rs->dy8[i].m256_f32[0] = d0.get_y();
-		rs->dy8[i].m256_f32[1] = d1.get_y();
-		rs->dy8[i].m256_f32[2] = d2.get_y();
-		rs->dy8[i].m256_f32[3] = d3.get_y();
-		rs->dy8[i].m256_f32[4] = d4.get_y();
-		rs->dy8[i].m256_f32[5] = d5.get_y();
-		rs->dy8[i].m256_f32[6] = d6.get_y();
-		rs->dy8[i].m256_f32[7] = d7.get_y();
-		rs->dz8[i].m256_f32[0] = d0.get_z();
-		rs->dz8[i].m256_f32[1] = d1.get_z();
-		rs->dz8[i].m256_f32[2] = d2.get_z();
-		rs->dz8[i].m256_f32[3] = d3.get_z();
-		rs->dz8[i].m256_f32[4] = d4.get_z();
-		rs->dz8[i].m256_f32[5] = d5.get_z();
-		rs->dz8[i].m256_f32[6] = d6.get_z();
-		rs->dz8[i].m256_f32[7] = d7.get_z();
+		rs->dx8[i] = _mm256_set_ps(d0.get_x(), d1.get_x(), d2.get_x(), d3.get_x(), d4.get_x(), d5.get_x(), d6.get_x(), d7.get_x());
+		rs->dy8[i] = _mm256_set_ps(d0.get_y(), d1.get_y(), d2.get_y(), d3.get_y(), d4.get_y(), d5.get_y(), d6.get_y(), d7.get_y());
+		rs->dz8[i] = _mm256_set_ps(d0.get_z(), d1.get_z(), d2.get_z(), d3.get_z(), d4.get_z(), d5.get_z(), d6.get_z(), d7.get_z());
 
-		rs->len8[i].m256_f32[0] = 100;
-		rs->len8[i].m256_f32[1] = 100;
-		rs->len8[i].m256_f32[2] = 100;
-		rs->len8[i].m256_f32[3] = 100;
-		rs->len8[i].m256_f32[4] = 100;
-		rs->len8[i].m256_f32[5] = 100;
-		rs->len8[i].m256_f32[6] = 100;
-		rs->len8[i].m256_f32[7] = 100;
+		rs->len8[i] = _mm256_set1_ps(100.f);
+		rs->depth8[i] = _mm256_setzero_si256();
 	}
 
 	Vec3Df* traceResult = rs->trace();
@@ -171,7 +123,7 @@ Vec3Df RaytracerRenderer::trace(Ray ray, int depth)
 	else if(hitInfo.material.refracIndex <= 1)
 	{
 		Vec3Df normalCol = calculateLight(hitInfo, ray.direction) * hitInfo.material.diffuseColor;
-		Vec3Df mirrCol = hitInfo.material.diffuseColor*trace(mirrorRay(ray.direction, hitInfo), depth + 1);
+		Vec3Df mirrCol = hitInfo.material.diffuseColor * trace(mirrorRay(ray.direction, hitInfo), depth + 1);
 		Vec3Df finalCol = mirrCol * Vec3Df(hitInfo.material.mirror) + normalCol * (Vec3Df(1 - hitInfo.material.mirror));
 		return finalCol;
 	}

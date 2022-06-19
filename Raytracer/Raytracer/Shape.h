@@ -11,4 +11,6 @@ public:
 	virtual void hit(Ray r, HitInfo* current);
 	virtual bool fastHit(Ray r);
 	Material mat;
+
+	static Material getMat(int mid);
 };

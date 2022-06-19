@@ -2,12 +2,6 @@
 
 Scene::Scene()
 {
-	Vec3Df whiteAmbient = Vec3Df(0.1f);
-	Vec3Df whiteDiffuse = Vec3Df(1);
-	Vec3Df whiteSpecular = Vec3Df(1);
-	Vec3Df blueDiffuse = Vec3Df(1,0,0);
-	Vec3Df redDiffuse = Vec3Df(0,0,1);
-	Vec3Df refractNorm = Vec3Df(1);
 	Sphere* test1 = new Sphere(0, SOLID_RED, Vec3Df(-1.0f, -0.9f, 3), 0.5f);
 	objects.push_back(test1);
 	Sphere* test2 = new Sphere(1, SOLID_RED, Vec3Df(0, -0.9f, 3), 0.5f);
