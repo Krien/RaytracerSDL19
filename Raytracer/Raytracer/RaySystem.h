@@ -7,17 +7,21 @@ public:
 	RaySystem(Screen* screen);
 	
 	const static int AVX_SIZE = 8;
-	/*__m256 ox8[RAY_COUNT];
-	__m256 oy8[RAY_COUNT];
-	__m256 oz8[RAY_COUNT];
-	__m256 dx8[RAY_COUNT];
-	__m256 dy8[RAY_COUNT];
-	__m256 dz8[RAY_COUNT];
-	__m256 len8[RAY_COUNT];
-	__m256i depth8[RAY_COUNT];*/
+	const static int RAY_COUNT = (SCREEN_WIDTH * SCREEN_WIDTH) / 8;
+	__m256 originX[RAY_COUNT];
+	__m256 originY[RAY_COUNT];
+	__m256 originZ[RAY_COUNT];
+	__m256 dirX[RAY_COUNT];
+	__m256 dirY[RAY_COUNT];
+	__m256 dirZ[RAY_COUNT];
+	__m256 length[RAY_COUNT];
+	__m256 r[RAY_COUNT];
+	__m256 g[RAY_COUNT];
+	__m256 b[RAY_COUNT];
+	//__m256i depth[RAY_COUNT];
 	void draw(Pixel* pixelBuffer);
 	void init(Scene* scene, Camera* camera);
-	__m256* trace(__m256 rayDirX, __m256 rayDirY, __m256 rayDirZ, __m256 originX, __m256 originY, __m256 originZ, int depth);
+	void trace(__m256 rayDirX, __m256 rayDirY, __m256 rayDirZ, __m256 originX, __m256 originY, __m256 originZ, int depth);
 	HitInfo* hit();
 
 private:
