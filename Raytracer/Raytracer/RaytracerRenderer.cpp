@@ -116,18 +116,8 @@ Vec3Df RaytracerRenderer::trace(Ray ray, int depth)
 	{
 		return Vec3Df(0);
 	}
-	if (hitInfo.material.mirror == 0 && hitInfo.material.refracIndex <= 1)
-	{
-		return calculateLight(hitInfo, ray.direction)*hitInfo.material.diffuseColor;
-	}
-	else if(hitInfo.material.refracIndex <= 1)
-	{
-		Vec3Df normalCol = calculateLight(hitInfo, ray.direction) * hitInfo.material.diffuseColor;
-		Vec3Df mirrCol = hitInfo.material.diffuseColor * trace(mirrorRay(ray.direction, hitInfo), depth + 1);
-		Vec3Df finalCol = mirrCol * Vec3Df(hitInfo.material.mirror) + normalCol * (Vec3Df(1 - hitInfo.material.mirror));
-		return finalCol;
-	}
-	else
+
+	if (hitInfo.material.refracIndex > 1)
 	{
 		// Init beers law
 		Vec3Df k = Vec3Df(1);
@@ -143,29 +133,34 @@ Vec3Df RaytracerRenderer::trace(Ray ray, int depth)
 		Vec3Df refractDir = refracted ? refractRay(ray, hitNormal, refracIndex, cosTheta) : Vec3Df(0);
 		if (!cond)
 		{
-			Vec3Df power = -hitInfo.material.absorbtion * refractDir;
-			k = Vec3Df(pow(E, power[0]), pow(E, power[1]), pow(E, power[2]));
 			if (!refracted)
 			{
-				return k * trace(mirrorRay(ray.direction, hitInfo), depth + 1);
+				return trace(mirrorRay(ray.direction, hitInfo), depth + 1);
 			}
+			Vec3Df power = -hitInfo.material.absorbtion * refractDir;
+			k = Vec3Df(pow(E, power[0]), pow(E, power[1]), pow(E, power[2]));
 		}
 		Ray refractedRay = { hitInfo.hitPos + refractDir * Vec3Df(RAY_MIGRAINE), refractDir, 1000 };
 		Vec3Df rayDir = cond ? -ray.direction : ray.direction;
 		c = dot_product(rayDir, hitInfo.normal);
 		float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
-		float R = R0 + (1 - R0) * pow((1 - c), 5);
-		if (lastId == hitInfo.id)
+		float c_comp = 1 - c;
+		float R = R0 + (1 - R0) * c_comp * c_comp * c_comp * c_comp * c_comp;
+		return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
+	}
+	else
+	{
+		Vec3Df normalCol = calculateLight(hitInfo, ray.direction) * hitInfo.material.diffuseColor;
+		if (hitInfo.material.mirror == 0)
 		{
-			ray.refracIndex = 1.000293f;
-			ray.refracIndex2 = 1.000586f;
+			return normalCol;
 		}
 		else
 		{
-			ray.refracIndex = hitInfo.material.refracIndex;
-			ray.refracIndex2 = hitInfo.material.refracIndex * hitInfo.material.refracIndex;
+			Vec3Df mirrCol = hitInfo.material.diffuseColor * trace(mirrorRay(ray.direction, hitInfo), depth + 1);
+			Vec3Df finalCol = mirrCol * Vec3Df(hitInfo.material.mirror) + normalCol * (Vec3Df(1 - hitInfo.material.mirror));
+			return finalCol;
 		}
-		return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
 	}
 }
 
@@ -175,19 +170,14 @@ Vec3Df RaytracerRenderer::calculateLight(HitInfo hitI, Vec3Df direction)
 	for (Light* l : lights)
 	{
 		Vec3Df lightDist = l->position - hitI.hitPos;
-		Vec3Df lightV = normalize_vector(lightDist);
 		//If we cannot reach this light from the intersection point we go on to the next light.
 		if (dot_product(hitI.normal, lightDist) < 0)
 			continue;
+		Vec3Df lightV = normalize_vector(lightDist);
 		// blocked
 		Vec3Df shadowOrigin = hitI.hitPos + lightV * Vec3Df(RAY_MIGRAINE);
 		float shadowLength = (float)(vector_length(lightDist) - 2 * RAY_MIGRAINE);
 		Ray shadowR = { shadowOrigin, lightV, shadowLength };
-		for (size_t i = 0; i < shapeSize; i++)
-		{
-			if (shapes[i]->fastHit(shadowR))
-				continue;
-		}
 		// Diffuse
 		Vec3Df halfVector = normalize_vector(lightV - direction);
 		Vec3Df diffuse = l->intensity / vector_length(lightDist);

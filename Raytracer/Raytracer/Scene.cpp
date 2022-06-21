@@ -21,7 +21,7 @@ Scene::Scene()
 	objects.push_back(pLeft);
 	objects.push_back(pFront);
 	objects.push_back(pBack);
-	Light*l1 = new Light(Vec3Df(0.5f, -4, 0.3f), Vec3Df(1), Vec3Df(1));
+	Light*l1 = new Light(Vec3Df(0.5f, -4, 0.3f), Vec3Df(1));
 	lights.push_back(l1);
 }
 
