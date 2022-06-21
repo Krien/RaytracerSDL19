@@ -55,7 +55,7 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 
 	for (unsigned int i = 0; i < (height * width) / AVX_SIZE; i++)
 	{
-		trace(dirX[i], dirY[i], dirZ[i], originX[i], originY[i], originZ[i], 0);
+		trace(i, 0);
 		r[i] = _mm256_min_ps(r[i], _mm256_setzero_ps());
 		g[i] = _mm256_min_ps(r[i], _mm256_setzero_ps());
 		b[i] = _mm256_min_ps(r[i], _mm256_setzero_ps());
@@ -98,8 +98,15 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 
 
 // No idea what this should return, but probably a colorX, colorY and colorZ thats why its returning a __m256 array 
-void RaySystem::trace(__m256 rayDirX, __m256 rayDirY, __m256 rayDirZ, __m256 originX, __m256 originY, __m256 originZ, int depth)
+void RaySystem::trace(int ind, int depth)
 {
+	__m256 dx = dirX[ind];
+	__m256 dy = dirY[ind];
+	__m256 dz = dirZ[ind];
+	__m256 ox = originX[ind];
+	__m256 oy = originY[ind];
+	__m256 oz = originZ[ind];
+	__m256 len = length[ind];
 	//if (depth > RAYTRACER_RECURSION_DEPTH)
 	//	return Vec3Df(0);
 	//HitInfo hitInfo = { Vec3Df(0),Vec3Df(0),1000 };

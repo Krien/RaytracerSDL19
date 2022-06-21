@@ -21,7 +21,7 @@ public:
 	//__m256i depth[RAY_COUNT];
 	void draw(Pixel* pixelBuffer);
 	void init(Scene* scene, Camera* camera);
-	void trace(__m256 rayDirX, __m256 rayDirY, __m256 rayDirZ, __m256 originX, __m256 originY, __m256 originZ, int depth);
+	void trace(int ind, int depth);
 	HitInfo* hit();
 
 private:
