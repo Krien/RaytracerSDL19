@@ -134,63 +134,38 @@ Vec3Df RaytracerRenderer::trace(Ray ray, int depth)
 		float c = 0;
 		lastId = hitInfo.id;
 
+		bool cond = dot_product(ray.direction, hitInfo.normal) < 0;
+		Vec3Df hitNormal = hitInfo.normal * (cond ? 1 : -1);
+		float refracIndex = cond ? hitInfo.material.refracIndex : (1 / hitInfo.material.refracIndex);
 		// Obtuse angle
-		if (dot_product(ray.direction, hitInfo.normal) < 0)
+		float cosTheta = rayCosTheta(ray, hitNormal, refracIndex);
+		bool refracted = cosTheta >= 0;
+		Vec3Df refractDir = refracted ? refractRay(ray, hitNormal, refracIndex, cosTheta) : Vec3Df(0);
+		if (!cond)
 		{
-			float cosTheta = rayCosTheta(ray, hitInfo.normal, hitInfo.material.refracIndex);
-			bool refracted = cosTheta >= 0;
-			Vec3Df refractDir =  refracted ? refractRay(ray, hitInfo.normal, hitInfo.material.refracIndex, cosTheta) : Vec3Df(0);
-			Ray refractedRay = { hitInfo.hitPos + refractDir * Vec3Df(RAY_MIGRAINE), refractDir, 1000 };
-			c = dot_product(-ray.direction, hitInfo.normal);
-			// Calculate the reflectance at normal incidence.
-			float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
-			// Calculate schlick's approximation (amount of % the refraction contributes to the total).
-			float R = R0 + (1 - R0) * pow((1 - c), 5);
-			// The ray has now hit something refractive, if two spheres border each other we want them to refract off each other's indices and not the indice of air, and thus we set the last hit refract indice for the ray.
-			if (lastId == hitInfo.id)
-			{
-				ray.refracIndex = 1.000293f;
-				ray.refracIndex2 = 1.000586f;
-			}
-			else
-			{
-				ray.refracIndex = hitInfo.material.refracIndex;
-				ray.refracIndex2 = hitInfo.material.refracIndex * hitInfo.material.refracIndex;
-			}
-			// Return percentage of mirror and refraction that results from the above calculations, where R is the amount reflected and 1-R the amount refracted.
-			return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
-		}
-		else
-		{
-			float cosTheta = rayCosTheta(ray, -hitInfo.normal, 1/hitInfo.material.refracIndex);
-			bool refracted = cosTheta >= 0;
-			Vec3Df refractDir = refracted ? refractRay(ray, -hitInfo.normal, 1/hitInfo.material.refracIndex, cosTheta) : Vec3Df(0);
 			Vec3Df power = -hitInfo.material.absorbtion * refractDir;
 			k = Vec3Df(pow(E, power[0]), pow(E, power[1]), pow(E, power[2]));
 			if (!refracted)
 			{
 				return k * trace(mirrorRay(ray.direction, hitInfo), depth + 1);
 			}
-			Ray refractedRay = { hitInfo.hitPos + refractDir * Vec3Df(RAY_MIGRAINE), refractDir, 1000 };
-			c = dot_product(ray.direction, hitInfo.normal);
-			// Calculate the reflectance at normal incidence.
-			float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
-			// Calculate schlick's approximation (amount of % the refraction contributes to the total).
-			float R = R0 + (1 - R0) * pow((1 - c), 5);
-			// The ray has now hit something refractive, if two spheres border each other we want them to refract off each other's indices and not the indice of air, and thus we set the last hit refract indice for the ray.
-			if (lastId == hitInfo.id)
-			{
-				ray.refracIndex = 1.000293f;
-				ray.refracIndex2 = 1.000586f;
-			}
-			else
-			{
-				ray.refracIndex = hitInfo.material.refracIndex;
-				ray.refracIndex2 = hitInfo.material.refracIndex* hitInfo.material.refracIndex;
-			}
-			// Return percentage of mirror and refraction that results from the above calculations, where R is the amount reflected and 1-R the amount refracted.
-			return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
 		}
+		Ray refractedRay = { hitInfo.hitPos + refractDir * Vec3Df(RAY_MIGRAINE), refractDir, 1000 };
+		Vec3Df rayDir = cond ? -ray.direction : ray.direction;
+		c = dot_product(rayDir, hitInfo.normal);
+		float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
+		float R = R0 + (1 - R0) * pow((1 - c), 5);
+		if (lastId == hitInfo.id)
+		{
+			ray.refracIndex = 1.000293f;
+			ray.refracIndex2 = 1.000586f;
+		}
+		else
+		{
+			ray.refracIndex = hitInfo.material.refracIndex;
+			ray.refracIndex2 = hitInfo.material.refracIndex * hitInfo.material.refracIndex;
+		}
+		return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
 	}
 }
 
