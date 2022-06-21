@@ -60,7 +60,8 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 		g[i] = _mm256_min_ps(r[i], _mm256_setzero_ps());
 		b[i] = _mm256_min_ps(r[i], _mm256_setzero_ps());
 
-		unsigned int startIndex = (AVX_SIZE * i) * 4 + (AVX_SIZE * i * width) * 4;
+		// Please check later if this is correct lol
+		unsigned int startIndex = i * AVX_SIZE * 4;
 		for (unsigned int c = 0; c < 8; c++) {
 			*(pixelBuffer + startIndex) = r[i].m256_f32[c];
 			*(pixelBuffer + startIndex + 1) = g[i].m256_f32[c];
