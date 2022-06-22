@@ -77,7 +77,7 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 			*(pixelBuffer + startIndex + 1) = g[j].m256_f32[c];
 			*(pixelBuffer + startIndex + 2) = b[j].m256_f32[c];
 			*(pixelBuffer + startIndex + 3) = 0;
-			x += 1;
+			x += 8;
 		} 
 	}
 
@@ -184,30 +184,26 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	__m256 calcLightG = hitInfo.mat.amby;
 	__m256 calcLightB = hitInfo.mat.ambz;
 	for (Light* l : lights)
-	{
-		__m256 lightx = _mm256_set1_ps(l->position.get_x());
-		__m256 lighty = _mm256_set1_ps(l->position.get_y());
-		__m256 lightz = _mm256_set1_ps(l->position.get_z());
-		
+	{ 
 		// assuming all light intensities are the same here, since that makes it a bit easier 
-		__m256 lightInt = _mm256_set1_ps(l->intensity.get_x()); 
+		const __m256 lightInt = _mm256_set1_ps(l->intensity.get_x()); 
 		
 		// Vec3Df lightDist = l->position - hitI.hitPos;
-		__m256 lightDistx = _mm256_sub_ps(lightx, hitInfo.px);
-		__m256 lightDisty = _mm256_sub_ps(lighty, hitInfo.py);
-		__m256 lightDistz = _mm256_sub_ps(lightz, hitInfo.pz);
+		const __m256 lightDistx = _mm256_sub_ps(_mm256_set1_ps(l->position.get_x()), hitInfo.px);
+		const __m256 lightDisty = _mm256_sub_ps(_mm256_set1_ps(l->position.get_y()), hitInfo.py);
+		const __m256 lightDistz = _mm256_sub_ps(_mm256_set1_ps(l->position.get_z()), hitInfo.pz);
 		
 		//if (dot_product(hitI.normal, lightDist) < 0)
 		//	continue;
 		__m256 lightMask = _mm256_cmp_ps(dot_product(hitInfo.nx, hitInfo.ny, hitInfo.nz, lightDistx, lightDisty ,lightDistz), zero8, _CMP_LT_OS);
 
 		// 	Vec3Df lightV = normalize_vector(lightDist);
-		AvxVector3 lightV = normalize(lightDistx, lightDisty, lightDistz);
-		__m256 lenLight = vector_length(lightDistx, lightDisty, lightDistz);
+		const AvxVector3 lightV = normalize(lightDistx, lightDisty, lightDistz);
+		const __m256 lenLight = vector_length(lightDistx, lightDisty, lightDistz);
 		//	float shadowLength = (float)(vector_length(lightDist) - 2 * RAY_MIGRAINE);
 		__m256 shadowLength = _mm256_sub_ps(lenLight, _mm256_mul_ps(migraine8, _mm256_set1_ps(2)));
 		// Vec3Df halfVector = normalize_vector(lightV - direction);
-		AvxVector3 halfV = normalize(_mm256_sub_ps(lightV.x, dx), _mm256_sub_ps(lightV.y, dy), _mm256_sub_ps(lightV.z, dz));
+		const AvxVector3 halfVector = normalize(_mm256_sub_ps(lightV.x, dx), _mm256_sub_ps(lightV.y, dy), _mm256_sub_ps(lightV.z, dz));
 		
 		__m256 diffuse = _mm256_div_ps(lightInt, lenLight);
 		
@@ -219,7 +215,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 		
 		//	Vec3Df specular = hitI.material.diffuseColor * hitI.material.specularColor * l->intensity;
 	    //	specular *= Vec3Df((float)pow(std::max(0.0f, dot_product(hitI.normal, halfVector)), BLINN_PHONG_POWER));
-		__m256 specCoeff = _mm256_pow_ps(_mm256_max_ps(zero8, dot_product(hitNormal, halfV)), _mm256_set1_ps(BLINN_PHONG_POWER));
+		__m256 specCoeff = _mm256_pow_ps(_mm256_max_ps(zero8, dot_product(hitNormal, halfVector)), _mm256_set1_ps(BLINN_PHONG_POWER));
 		__m256 specularX = _mm256_mul_ps(_mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.specx, hitInfo.mat.diffx), lightInt), specCoeff);
 		__m256 specularY = _mm256_mul_ps(_mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.specy, hitInfo.mat.diffy), lightInt), specCoeff);
 		__m256 specularZ = _mm256_mul_ps(_mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.specz, hitInfo.mat.diffz), lightInt), specCoeff);
