@@ -38,14 +38,15 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 	// #pragma unroll
 	// Initialize ray values
 	for (unsigned int i = 0; i < (height * width) / AVX_SIZE; i++)
-	{
+	{ 
 		float x = i * AVX_SIZE % width;
-		float y = i * AVX_SIZE / width; 
-		__m256 test = _mm256_setr_ps(1, 0, x + 2 * xOffset, 0, 0, 0, 0, 0);
+		float y = i * AVX_SIZE / width;  
 		__m256 dx = _mm256_add_ps(startX,
-			_mm256_setr_ps(x * xOffset, x + 1 * xOffset, x + 2 * xOffset, x + 3 * xOffset, x + 4 * xOffset, x + 5 * xOffset, x + 6 * xOffset, x + 7 * xOffset));
+			_mm256_setr_ps(x * xOffset, (x + 1) * xOffset, (x + 2) * xOffset, (x + 3) * xOffset,
+				(x + 4) * xOffset, (x + 5) * xOffset, (x + 6) * xOffset, (x + 7) * xOffset));
 		__m256 dy = _mm256_add_ps(startY,
-			_mm256_setr_ps(y * yOffset, y + 1 * yOffset, y + 2 * yOffset, y + 3 * yOffset, y + 4 * yOffset, y + 5 * yOffset, y + 6 * yOffset, y + 7 * yOffset));
+			_mm256_setr_ps(y * yOffset, (y + 1) * yOffset, (y + 2) * yOffset, (y + 3) * yOffset,
+				(y + 4) * yOffset, (y + 5) * yOffset, (y + 6) * yOffset, (y + 7) * yOffset));
 		__m256 dz = startZ;
 		AvxVector3 norm = normalize(dx, dy, dz); 
 
