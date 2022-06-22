@@ -7,7 +7,7 @@ struct Mat_Avx {
 	__m256 specx, specy, specz;
 	__m256 absx, absy, absz;
 	__m256 mirror;
-	__m256 refracId;
+	__m256 refracIndex;
 };
 
 struct HitInfo_Avx {
@@ -56,6 +56,4 @@ private:
 	__m256 startX, startY;
 	__m256 ox, oy, oz;
 	__m256 rayLen;
-
-	HitInfo_Avx hitInfo;
 };

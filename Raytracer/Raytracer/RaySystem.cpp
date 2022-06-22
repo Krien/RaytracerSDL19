@@ -109,11 +109,6 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	AvxVector3 zeroVec = { zero8, zero8, zero8 };
 	if (depth > RAYTRACER_RECURSION_DEPTH) return zeroVec;
 
-	hit(ind);
-	__m256 distMask = _mm256_cmp_ps(hitInfo.dist, _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS);
-	__m256 one8 = _mm256_set1_ps(1);
-	__m256 matRefracIndex = hitInfo.mat.refracId;
-	__m256 refracMask = _mm256_cmp_ps(matRefracIndex, one8, _CMP_GT_OS);
 
 	__m256 dx = dirX[ind];
 	__m256 dy = dirY[ind];
@@ -122,6 +117,50 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	__m256 oy = originY[ind];
 	__m256 oz = originZ[ind];
 	__m256 len = length[ind];
+
+	// -- hit function  currently not fully AVX --
+
+	HitInfo* h = new HitInfo[AVX_SIZE];
+	for (size_t j = 0; j < AVX_SIZE; j++)
+	{
+		Ray r = { Vec3Df(dx.m256_f32[j], dy.m256_f32[j], dz.m256_f32[j]), Vec3Df(ox.m256_f32[j], oy.m256_f32[j], oz.m256_f32[j]), len.m256_f32[j] };
+		for (size_t i = 0; i < shapeSize; i++)
+		{
+			if (shapes[i]->hit(r, h + j)) break;
+		}
+	}
+
+	HitInfo_Avx hitInfo = HitInfo_Avx();
+	hitInfo.nx = _mm256_set_ps(h[0].normal.get_x(), h[1].normal.get_x(), h[2].normal.get_x(), h[3].normal.get_x(), h[4].normal.get_x(), h[5].normal.get_x(), h[6].normal.get_x(), h[7].normal.get_x());
+	hitInfo.ny = _mm256_set_ps(h[0].normal.get_y(), h[1].normal.get_y(), h[2].normal.get_y(), h[3].normal.get_y(), h[4].normal.get_y(), h[5].normal.get_y(), h[6].normal.get_y(), h[7].normal.get_y());
+	hitInfo.nz = _mm256_set_ps(h[0].normal.get_z(), h[1].normal.get_z(), h[2].normal.get_z(), h[3].normal.get_z(), h[4].normal.get_z(), h[5].normal.get_z(), h[6].normal.get_z(), h[7].normal.get_z());
+	hitInfo.px = _mm256_set_ps(h[0].hitPos.get_x(), h[1].hitPos.get_x(), h[2].hitPos.get_x(), h[3].hitPos.get_x(), h[4].hitPos.get_x(), h[5].hitPos.get_x(), h[6].hitPos.get_x(), h[7].hitPos.get_x());
+	hitInfo.py = _mm256_set_ps(h[0].hitPos.get_y(), h[1].hitPos.get_y(), h[2].hitPos.get_y(), h[3].hitPos.get_y(), h[4].hitPos.get_y(), h[5].hitPos.get_y(), h[6].hitPos.get_y(), h[7].hitPos.get_y());
+	hitInfo.pz = _mm256_set_ps(h[0].hitPos.get_z(), h[1].hitPos.get_z(), h[2].hitPos.get_z(), h[3].hitPos.get_z(), h[4].hitPos.get_z(), h[5].hitPos.get_z(), h[6].hitPos.get_z(), h[7].hitPos.get_z());
+	hitInfo.dist = _mm256_set_ps(h[0].distance, h[1].distance, h[2].distance, h[3].distance, h[4].distance, h[5].distance, h[6].distance, h[7].distance);
+	hitInfo.id = _mm256_set_epi32(h[0].id, h[1].id, h[2].id, h[3].id, h[4].id, h[5].id, h[6].id, h[7].id);
+	hitInfo.mat.absx = _mm256_set_ps(h[0].material.absorbtion.get_x(), h[1].material.absorbtion.get_x(), h[2].material.absorbtion.get_x(), h[3].material.absorbtion.get_x(), h[4].material.absorbtion.get_x(), h[5].material.absorbtion.get_x(), h[6].material.absorbtion.get_x(), h[7].material.absorbtion.get_x());
+	hitInfo.mat.absy = _mm256_set_ps(h[0].material.absorbtion.get_y(), h[1].material.absorbtion.get_y(), h[2].material.absorbtion.get_y(), h[3].material.absorbtion.get_y(), h[4].material.absorbtion.get_y(), h[5].material.absorbtion.get_y(), h[6].material.absorbtion.get_y(), h[7].material.absorbtion.get_y());
+	hitInfo.mat.absz = _mm256_set_ps(h[0].material.absorbtion.get_z(), h[1].material.absorbtion.get_z(), h[2].material.absorbtion.get_z(), h[3].material.absorbtion.get_z(), h[4].material.absorbtion.get_z(), h[5].material.absorbtion.get_z(), h[6].material.absorbtion.get_z(), h[7].material.absorbtion.get_z());
+	hitInfo.mat.diffx = _mm256_set_ps(h[0].material.diffuseColor.get_x(), h[1].material.diffuseColor.get_x(), h[2].material.diffuseColor.get_x(), h[3].material.diffuseColor.get_x(), h[4].material.diffuseColor.get_x(), h[5].material.diffuseColor.get_x(), h[6].material.diffuseColor.get_x(), h[7].material.diffuseColor.get_x());
+	hitInfo.mat.diffy = _mm256_set_ps(h[0].material.diffuseColor.get_y(), h[1].material.diffuseColor.get_y(), h[2].material.diffuseColor.get_y(), h[3].material.diffuseColor.get_y(), h[4].material.diffuseColor.get_y(), h[5].material.diffuseColor.get_y(), h[6].material.diffuseColor.get_y(), h[7].material.diffuseColor.get_y());
+	hitInfo.mat.diffz = _mm256_set_ps(h[0].material.diffuseColor.get_z(), h[1].material.diffuseColor.get_z(), h[2].material.diffuseColor.get_z(), h[3].material.diffuseColor.get_z(), h[4].material.diffuseColor.get_z(), h[5].material.diffuseColor.get_z(), h[6].material.diffuseColor.get_z(), h[7].material.diffuseColor.get_z());
+	hitInfo.mat.specx = _mm256_set_ps(h[0].material.specularColor.get_x(), h[1].material.specularColor.get_x(), h[2].material.specularColor.get_x(), h[3].material.specularColor.get_x(), h[4].material.specularColor.get_x(), h[5].material.specularColor.get_x(), h[6].material.specularColor.get_x(), h[7].material.specularColor.get_x());
+	hitInfo.mat.specy = _mm256_set_ps(h[0].material.specularColor.get_y(), h[1].material.specularColor.get_y(), h[2].material.specularColor.get_y(), h[3].material.specularColor.get_y(), h[4].material.specularColor.get_y(), h[5].material.specularColor.get_y(), h[6].material.specularColor.get_y(), h[7].material.specularColor.get_y());
+	hitInfo.mat.specz = _mm256_set_ps(h[0].material.specularColor.get_z(), h[1].material.specularColor.get_z(), h[2].material.specularColor.get_z(), h[3].material.specularColor.get_z(), h[4].material.specularColor.get_z(), h[5].material.specularColor.get_z(), h[6].material.specularColor.get_z(), h[7].material.specularColor.get_z());
+	hitInfo.mat.ambx = _mm256_set_ps(h[0].material.ambientColor.get_x(), h[1].material.ambientColor.get_x(), h[2].material.ambientColor.get_x(), h[3].material.ambientColor.get_x(), h[4].material.ambientColor.get_x(), h[5].material.ambientColor.get_x(), h[6].material.ambientColor.get_x(), h[7].material.ambientColor.get_x());
+	hitInfo.mat.amby = _mm256_set_ps(h[0].material.ambientColor.get_y(), h[1].material.ambientColor.get_y(), h[2].material.ambientColor.get_y(), h[3].material.ambientColor.get_y(), h[4].material.ambientColor.get_y(), h[5].material.ambientColor.get_y(), h[6].material.ambientColor.get_y(), h[7].material.ambientColor.get_y());
+	hitInfo.mat.ambz = _mm256_set_ps(h[0].material.ambientColor.get_z(), h[1].material.ambientColor.get_z(), h[2].material.ambientColor.get_z(), h[3].material.ambientColor.get_z(), h[4].material.ambientColor.get_z(), h[5].material.ambientColor.get_z(), h[6].material.ambientColor.get_z(), h[7].material.ambientColor.get_z());
+	hitInfo.mat.mirror = _mm256_set_ps(h[0].material.mirror, h[1].material.mirror, h[2].material.mirror, h[3].material.mirror, h[4].material.mirror, h[5].material.mirror, h[6].material.mirror, h[7].material.mirror);
+	hitInfo.mat.refracIndex = _mm256_set_ps(h[0].material.refracIndex, h[1].material.refracIndex, h[2].material.refracIndex, h[3].material.refracIndex, h[4].material.refracIndex, h[5].material.refracIndex, h[6].material.refracIndex, h[7].material.refracIndex);
+	
+	// end of hit function
+
+	__m256 distMask = _mm256_cmp_ps(hitInfo.dist, _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS);
+	__m256 one8 = _mm256_set1_ps(1);
+	__m256 matRefracIndex = hitInfo.mat.refracIndex;
+	__m256 refracMask = _mm256_cmp_ps(matRefracIndex, one8, _CMP_GT_OS);
+
 
 	AvxVector3 rayDir = { dx, dy, dz };
 	AvxVector3 hitNormal = { hitInfo.nx, hitInfo.ny, hitInfo.nz };
@@ -263,23 +302,18 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	//}
 }
 
-void RaySystem::hit(int ind)
-{
-	__m256 dx = dirX[ind];
-	__m256 dy = dirY[ind];
-	__m256 dz = dirZ[ind];
-	__m256 ox = originX[ind];
-	__m256 oy = originY[ind];
-	__m256 oz = originZ[ind];
-	__m256 len = length[ind];
-
-	HitInfo* h = new HitInfo[AVX_SIZE];
-	for (size_t j = 0; j < AVX_SIZE; j++)
-	{
-		Ray r = { Vec3Df(dx.m256_f32[j], dy.m256_f32[j], dz.m256_f32[j]), Vec3Df(ox.m256_f32[j], oy.m256_f32[j], oz.m256_f32[j]), len.m256_f32[j]};
-		for (size_t i = 0; i < shapeSize; i++)
-		{
-			if (shapes[i]->hit(r, h + j)) break;
-		}
-	}
-}
+// rewrite this later
+//void RaySystem::hit(int ind)
+//{
+//	__m256 dx = dirX[ind];
+//	__m256 dy = dirY[ind];
+//	__m256 dz = dirZ[ind];
+//	__m256 ox = originX[ind];
+//	__m256 oy = originY[ind];
+//	__m256 oz = originZ[ind];
+//	__m256 len = length[ind];
+//
+//	
+//
+//
+//} 
