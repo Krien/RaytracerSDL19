@@ -4,7 +4,9 @@ RaytracerRenderer::RaytracerRenderer(Screen* screen) : Renderer(screen)
 {
 	width = screen->getWidth();
 	height = screen->getHeight(); 
+#if SIMD
 	rs = new RaySystem(screen); 
+#endif
 }
 
 RaytracerRenderer::~RaytracerRenderer()

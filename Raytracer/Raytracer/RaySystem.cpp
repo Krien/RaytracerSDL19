@@ -4,7 +4,6 @@
 
 RaySystem::RaySystem(Screen* screen)
 {
-
 	this->width = screen->getWidth();
 	this->height = screen->getHeight();
 }
@@ -12,23 +11,28 @@ RaySystem::RaySystem(Screen* screen)
 void RaySystem::init(Scene* scene, Camera* camera) {
 	this->scene = scene;
 	this->camera = camera;
+
+	shapes = scene->objects;
+	shapeSize = shapes.size();
+	lights = scene->lights;
+	lightSize = lights.size();
+
+	Vec3Df startDir = camera->getRelTopLeft();
+	Vec3Df camPos = camera->position;
+	xOffset = (float)SCREEN_DIMENSION * 2 / (width - 1);
+	yOffset = (float)SCREEN_DIMENSION * 2 / (height - 1);
+
+	startX = _mm256_set1_ps(startDir.get_x());
+	startY = _mm256_set1_ps(startDir.get_y());
+
+	ox = _mm256_set1_ps(camPos.get_x());
+	oy = _mm256_set1_ps(camPos.get_y());
+	oz = _mm256_set1_ps(camPos.get_z());
+
+	rayLen = _mm256_set1_ps(100);
 }
 
 void RaySystem::draw(Pixel* pixelBuffer) {
-	Vec3Df startDir = camera->getRelTopLeft();
-	Vec3Df camPos = camera->position;
-	const static float xOffset = (float)SCREEN_DIMENSION * 2 / (width - 1);
-	const static float yOffset = (float)SCREEN_DIMENSION * 2 / (height - 1);
-
-	const __m256 startX = _mm256_set1_ps(startDir.get_x());
-	const __m256 startY = _mm256_set1_ps(startDir.get_y());
-	const __m256 startZ = _mm256_set1_ps(startDir.get_z());
-
-	const __m256 ox = _mm256_set1_ps(camPos.get_x());
-	const __m256 oy = _mm256_set1_ps(camPos.get_y());
-	const __m256 oz = _mm256_set1_ps(camPos.get_z());
-
-	const __m256 rayLen = _mm256_set1_ps(100);
 
 	// #pragma unroll
 	// Initialize ray values
@@ -99,8 +103,18 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 
 
 // No idea what this should return, but probably a colorX, colorY and colorZ thats why its returning a __m256 array 
-void RaySystem::trace(int ind, int depth)
+AvxVector3 RaySystem::trace(int ind, int depth)
 {
+	__m256 zero8 = _mm256_setzero_ps();
+	AvxVector3 zeroVec = { zero8, zero8, zero8 };
+	if (depth > RAYTRACER_RECURSION_DEPTH) return zeroVec;
+
+	hit(ind);
+	__m256 distMask = _mm256_cmp_ps(hitInfo.dist, _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS);
+	__m256 one8 = _mm256_set1_ps(1);
+	__m256 matRefracIndex = hitInfo.mat.refracId;
+	__m256 refracMask = _mm256_cmp_ps(matRefracIndex, one8, _CMP_GT_OS);
+
 	__m256 dx = dirX[ind];
 	__m256 dy = dirY[ind];
 	__m256 dz = dirZ[ind];
@@ -108,18 +122,58 @@ void RaySystem::trace(int ind, int depth)
 	__m256 oy = originY[ind];
 	__m256 oz = originZ[ind];
 	__m256 len = length[ind];
-	//if (depth > RAYTRACER_RECURSION_DEPTH)
-	//	return Vec3Df(0);
-	//HitInfo hitInfo = { Vec3Df(0),Vec3Df(0),1000 };
-	//for (size_t i = 0; i < shapeSize; i++)
-	//{
-	//	shapes[i]->hit(ray, &hitInfo);
-	//}
-	//// Not a hit, so return
-	//if (hitInfo.distance > RAYTRACER_MAX_RENDERDISTANCE)
-	//{
-	//	return Vec3Df(0);
-	//}
+
+	AvxVector3 rayDir = { dx, dy, dz };
+	AvxVector3 hitNormal = { hitInfo.nx, hitInfo.ny, hitInfo.nz };
+	__m256 dotDirNor = dot_product(rayDir, hitNormal);
+	__m256 condMask = _mm256_cmp_ps(dotDirNor, zero8, _CMP_LT_OS);
+
+	__m256 refracIndex = _mm256_blendv_ps(one8, _mm256_mul_ps(matRefracIndex, matRefracIndex), condMask);
+	__m256 cosTheta = _mm256_div_ps(_mm256_sub_ps(one8, _mm256_mul_ps(_mm256_set1_ps(1.000586f), _mm256_sub_ps(_mm256_set1_ps(1), _mm256_mul_ps(dotDirNor, dotDirNor)))), _mm256_mul_ps(refracIndex, refracIndex));
+	__m256 refractedMask = _mm256_cmp_ps(cosTheta, zero8, _CMP_GT_OS);
+	AvxVector3 sinPhi = mul(sub(rayDir, mul(hitNormal, dotDirNor)), refracIndex);
+	AvxVector3 refDir = normalize(sub(sinPhi, mul(hitNormal, _mm256_sqrt_ps(cosTheta))));
+	AvxVector3 refractDir = blend(refDir, zeroVec, refractedMask);
+	AvxVector3 negMatAbs = { -hitInfo.mat.absx, -hitInfo.mat.absy, -hitInfo.mat.absz };
+	AvxVector3 power = mul(negMatAbs, refractDir);
+	__m256 e8 = _mm256_set1_ps(E);
+	AvxVector3 kp8 = { _mm256_pow_ps(e8, power.x), _mm256_pow_ps(e8, power.y), _mm256_pow_ps(e8, power.z) };
+	AvxVector3 k = blend(kp8, zeroVec, _mm256_andnot_ps(refracMask, condMask));
+
+	__m256 R0 = _mm256_div_ps(_mm256_mul_ps(_mm256_sub_ps(matRefracIndex, one8), _mm256_sub_ps(matRefracIndex, one8)), _mm256_mul_ps(_mm256_add_ps(matRefracIndex, one8), _mm256_add_ps(matRefracIndex, one8)));
+	__m256 c_comp = _mm256_sub_ps(one8, dotDirNor);
+	__m256 R = _mm256_add_ps(R0, _mm256_mul_ps(_mm256_sub_ps(one8, R0), _mm256_pow_ps(c_comp, _mm256_set1_ps(5))));
+
+	// mirror ray
+	AvxVector3 mirrDir = normalize(sub(rayDir, mul(hitNormal, dotDirNor * 2)));
+	AvxVector3 hitPos = { hitInfo.px, hitInfo.py, hitInfo.pz };
+	AvxVector3 newOriginM = add(hitPos, mul(mirrDir, _mm256_set1_ps(RAY_MIGRAINE)));
+	originX[ind] = newOriginM.x;
+	originY[ind] = newOriginM.y;
+	originZ[ind] = newOriginM.z;
+	dirX[ind] = mirrDir.x;
+	dirY[ind] = mirrDir.y;
+	dirZ[ind] = mirrDir.z;
+	length[ind] = _mm256_set1_ps(1000);
+	AvxVector3 mCol = trace(ind, depth + 1);
+
+	// refracted ray
+	AvxVector3 newOriginR = add(hitPos, mul(refractDir, _mm256_set1_ps(RAY_MIGRAINE)));
+	originX[ind] = newOriginR.x;
+	originY[ind] = newOriginR.y;
+	originZ[ind] = newOriginR.z;
+	dirX[ind] = refractDir.x;
+	dirY[ind] = refractDir.y;
+	dirZ[ind] = refractDir.z;
+	length[ind] = _mm256_set1_ps(1000);
+	AvxVector3 rCol = trace(ind, depth + 1);
+
+	// two rays bounced on one hit
+	AvxVector3 color = add(mul(mul(k, R), mCol), mul(rCol, _mm256_sub_ps(one8, R)));
+	r[ind] = _mm256_mul_ps(color.x, refracMask);
+	g[ind] = _mm256_mul_ps(color.y, refracMask);
+	b[ind] = _mm256_mul_ps(color.z, refracMask);
+	return { r[ind], g[ind], b[ind] };
 
 	//if (hitInfo.material.refracIndex > 1)
 	//{
@@ -168,7 +222,23 @@ void RaySystem::trace(int ind, int depth)
 	//}
 }
 
-HitInfo* RaySystem::hit()
+void RaySystem::hit(int ind)
 {
-	return NULL;
+	__m256 dx = dirX[ind];
+	__m256 dy = dirY[ind];
+	__m256 dz = dirZ[ind];
+	__m256 ox = originX[ind];
+	__m256 oy = originY[ind];
+	__m256 oz = originZ[ind];
+	__m256 len = length[ind];
+
+	HitInfo* h = new HitInfo[AVX_SIZE];
+	for (size_t j = 0; j < AVX_SIZE; j++)
+	{
+		Ray r = { Vec3Df(dx.m256_f32[j], dy.m256_f32[j], dz.m256_f32[j]), Vec3Df(ox.m256_f32[j], oy.m256_f32[j], oz.m256_f32[j]), len.m256_f32[j]};
+		for (size_t i = 0; i < shapeSize; i++)
+		{
+			if (shapes[i]->hit(r, h + j)) break;
+		}
+	}
 }

@@ -41,3 +41,27 @@ inline AvxVector3 normalize(__m256 x, __m256 y, __m256 z) {
 inline AvxVector3 normalize(AvxVector3 v) {
 	return normalize(v.x, v.y, v.z);
 }
+
+inline __m256 dot_product(AvxVector3 v1, AvxVector3 v2) {
+	return _mm256_fmadd_ps(_mm256_mul_ps(v1.x, v2.x), _mm256_mul_ps(v1.y, v2.y), _mm256_mul_ps(v1.z, v2.z));
+}
+
+inline AvxVector3 add(AvxVector3 v1, AvxVector3 v2) {
+	return { _mm256_add_ps(v1.x, v2.x), _mm256_add_ps(v1.y, v2.y), _mm256_add_ps(v1.z, v2.z) };
+}
+
+inline AvxVector3 sub(AvxVector3 v1, AvxVector3 v2) {
+	return { _mm256_sub_ps(v1.x, v2.x), _mm256_sub_ps(v1.y, v2.y), _mm256_sub_ps(v1.z, v2.z) };
+}
+
+inline AvxVector3 mul(AvxVector3 v1, AvxVector3 v2) {
+	return { _mm256_mul_ps(v1.x, v2.x), _mm256_mul_ps(v1.y, v2.y), _mm256_mul_ps(v1.z, v2.z) };
+}
+
+inline AvxVector3 mul(AvxVector3 v, __m256 c) {
+	return { _mm256_mul_ps(v.x, c), _mm256_mul_ps(v.y, c), _mm256_mul_ps(v.z, c) };
+}
+
+inline AvxVector3 blend(AvxVector3 v1, AvxVector3 v2, __m256 m) {
+	return { _mm256_blendv_ps(v1.x, v2.x, m), _mm256_blendv_ps(v1.y, v2.y, m), _mm256_blendv_ps(v1.z, v2.z, m) };
+}

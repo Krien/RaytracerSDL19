@@ -22,8 +22,9 @@ Shape::~Shape()
 {
 }
 
-void Shape::hit(Ray r, HitInfo* hit)
+bool Shape::hit(Ray r, HitInfo* hit)
 {
+	return false;
 }
 
 bool Shape::fastHit(Ray r)

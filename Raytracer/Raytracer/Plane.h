@@ -6,6 +6,6 @@ public:
 	float distance;
 	Plane(int id, int mid, Vec3Df normal, float distance);
 	~Plane();
-	void hit(Ray r, HitInfo* hit) override;
+	bool hit(Ray r, HitInfo* hit) override;
 	bool fastHit(Ray r) override;
 };

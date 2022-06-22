@@ -10,13 +10,15 @@ Plane::~Plane()
 {
 }
 
-void Plane::hit(Ray r, HitInfo* hit)
+bool Plane::hit(Ray r, HitInfo* hit)
 {
 	float t = -(dot_product(r.origin, normal) + distance) / (dot_product(r.direction, normal));
 	if (t >= 0 && t < hit->distance)
 	{
 		*hit = HitInfo{ -normal,r.origin + r.direction * t,t, mat, id};
+		return true;
 	}
+	return false;
 }
 
 bool Plane::fastHit(Ray r)

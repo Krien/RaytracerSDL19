@@ -8,7 +8,7 @@ Sphere::Sphere(int id, int mid, Vec3Df position, float radius) : Shape(id, mid)
 	Sphere::position = position;
 }
 
-void Sphere::hit(Ray r, HitInfo* hit)
+bool Sphere::hit(Ray r, HitInfo* hit)
 {
 	Vec3Df c = position - r.origin;
 	float cLenSq = dot_product(c, c);
@@ -20,6 +20,7 @@ void Sphere::hit(Ray r, HitInfo* hit)
 			Vec3Df hitPos = r.origin + r.direction * Vec3Df(radius);
 			Vec3Df normal = normalize_vector(hitPos - position);
 			*hit = HitInfo{ -normal,hitPos,radius,mat, id };
+			return true;
 		}
 	}
 	else
@@ -35,10 +36,11 @@ void Sphere::hit(Ray r, HitInfo* hit)
 				Vec3Df hitPos = r.origin + r.direction * Vec3Df(t);
 				Vec3Df normal = normalize_vector(hitPos - position);
 				*hit = HitInfo{ normal,hitPos,t,mat, id };
-				int b = 0;
+				return true;
 			}
 		}
 	}
+	return false;
 }
 
 bool Sphere::fastHit(Ray r)
