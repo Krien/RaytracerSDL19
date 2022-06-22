@@ -55,9 +55,9 @@ void RaytracerRenderer::draw(int iteration)
 	//	d5 = normalize_vector(d5);
 	//	d6 = normalize_vector(d6);
 	//	d7 = normalize_vector(d7);
-	//	rs->dx8[i] = _mm256_set_ps(d0.get_x(), d1.get_x(), d2.get_x(), d3.get_x(), d4.get_x(), d5.get_x(), d6.get_x(), d7.get_x());
-	//	rs->dy8[i] = _mm256_set_ps(d0.get_y(), d1.get_y(), d2.get_y(), d3.get_y(), d4.get_y(), d5.get_y(), d6.get_y(), d7.get_y());
-	//	rs->dz8[i] = _mm256_set_ps(d0.get_z(), d1.get_z(), d2.get_z(), d3.get_z(), d4.get_z(), d5.get_z(), d6.get_z(), d7.get_z());
+	//	rs->dx8[i] = _mm256_setr_ps(d0.get_x(), d1.get_x(), d2.get_x(), d3.get_x(), d4.get_x(), d5.get_x(), d6.get_x(), d7.get_x());
+	//	rs->dy8[i] = _mm256_setr_ps(d0.get_y(), d1.get_y(), d2.get_y(), d3.get_y(), d4.get_y(), d5.get_y(), d6.get_y(), d7.get_y());
+	//	rs->dz8[i] = _mm256_setr_ps(d0.get_z(), d1.get_z(), d2.get_z(), d3.get_z(), d4.get_z(), d5.get_z(), d6.get_z(), d7.get_z());
 
 	//	rs->len8[i] = _mm256_set1_ps(100.f);
 	//	rs->depth8[i] = _mm256_setzero_si256();
