@@ -40,7 +40,7 @@ inline AvxVector3 normalize(__m256 x, __m256 y, __m256 z) {
 
 
 inline __m256 dot_product(__m256 x1, __m256 y1, __m256 z1, __m256 x2, __m256 y2, __m256 z2) {
-	return _mm256_fmadd_ps(_mm256_mul_ps(x1, x2), _mm256_mul_ps(y1, y2), _mm256_mul_ps(z1, z2));
+	return _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(x1, x2), _mm256_mul_ps(y1, y2)), _mm256_mul_ps(z1, z2));
 
 }
 
