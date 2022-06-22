@@ -57,19 +57,19 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 		length[i] = rayLen; 
 	}
 
-	for (unsigned int i = 0; i < (height * width) / AVX_SIZE; i++)
+	for (unsigned int j = 0; j < (height * width) / AVX_SIZE; j++)
 	{
-		trace(i, 0);
-		r[i] = _mm256_min_ps(r[i], _mm256_setzero_ps());
-		g[i] = _mm256_min_ps(r[i], _mm256_setzero_ps());
-		b[i] = _mm256_min_ps(r[i], _mm256_setzero_ps());
+		trace(j, 0);
+		r[j] = _mm256_min_ps(r[j], _mm256_setzero_ps());
+		g[j] = _mm256_min_ps(r[j], _mm256_setzero_ps());
+		b[j] = _mm256_min_ps(r[j], _mm256_setzero_ps());
 
 		// Please check later if this is correct lol
-		unsigned int startIndex = i * AVX_SIZE * 4;
+		unsigned int startIndex = j * AVX_SIZE * 4;
 		for (unsigned int c = 0; c < 8; c++) {
-			*(pixelBuffer + startIndex) = r[i].m256_f32[c];
-			*(pixelBuffer + startIndex + 1) = g[i].m256_f32[c];
-			*(pixelBuffer + startIndex + 2) = b[i].m256_f32[c];
+			*(pixelBuffer + startIndex) = r[j].m256_f32[c];
+			*(pixelBuffer + startIndex + 1) = g[j].m256_f32[c];
+			*(pixelBuffer + startIndex + 2) = b[j].m256_f32[c];
 			*(pixelBuffer + startIndex + 3) = 0;
 			startIndex += 4;
 		} 
