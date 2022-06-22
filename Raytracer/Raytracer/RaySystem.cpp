@@ -40,8 +40,7 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 	for (unsigned int i = 0; i < (height * width) / AVX_SIZE; i++)
 	{
 		int x = i * AVX_SIZE % width;
-		int y = i * AVX_SIZE / width;
-
+		int y = i * AVX_SIZE / width; 
 		__m256 dx = _mm256_add_ps(startX,
 			_mm256_set_ps(x * xOffset, x + 1 * xOffset, x + 2 * xOffset, x + 3 * xOffset, x + 4 * xOffset, x + 5 * xOffset, x + 6 * xOffset, x + 7 * xOffset));
 		__m256 dy = _mm256_add_ps(startY,
@@ -128,7 +127,10 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 		Ray r = { Vec3Df(dx.m256_f32[j], dy.m256_f32[j], dz.m256_f32[j]), Vec3Df(ox.m256_f32[j], oy.m256_f32[j], oz.m256_f32[j]), len.m256_f32[j] };
 		for (unsigned int i = 0; i < shapeSize; i++)
 		{
-			shapes[i]->hit(r, &h[j]); 
+			bool earlyOut = shapes[i]->hit(r, &h[j]); 
+			if (earlyOut) {
+				break;
+			}
 		}
 	}
 

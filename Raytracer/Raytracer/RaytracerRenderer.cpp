@@ -112,7 +112,9 @@ Vec3Df RaytracerRenderer::trace(Ray ray, int depth)
 	HitInfo hitInfo = { Vec3Df(0),Vec3Df(0),1000 };
 	for (size_t i = 0; i < shapeSize; i++)
 	{
-		shapes[i]->hit(ray, &hitInfo);
+		bool earlyOut = shapes[i]->hit(ray, &hitInfo);
+		if (earlyOut)
+			break;
 	}
 	// Not a hit, so return
 	if (hitInfo.distance > RAYTRACER_MAX_RENDERDISTANCE)
