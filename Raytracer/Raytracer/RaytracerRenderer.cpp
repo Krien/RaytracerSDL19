@@ -23,61 +23,9 @@ void RaytracerRenderer::draw(int iteration)
 	lights = currentScene->lights;
 	lightSize = lights.size();
 	lastId = -1;
-#if 1
+#if 0
 	rs->init(currentScene, camera);
 	rs->draw(pixelBuffer);
-	//assert(rs != NULL);
-
-	//float camX = camera->position.get_x();
-	//float camY = camera->position.get_y();
-	//float camZ = camera->position.get_z();
-	//for (unsigned int i = 0; i < height * width / 8; i++)
-	//{
-	//	rs->ox8[i] = _mm256_set1_ps(camX);
-	//	rs->oy8[i] = _mm256_set1_ps(camY);
-	//	rs->oz8[i] = _mm256_set1_ps(camZ);
-
-	//	int x = i * 8 % width;
-	//	int y = i * 8 / width;
-	//	Vec3Df d0 = rayStartDir + Vec3Df(x * xOffset, y * yOffset, 0);
-	//	Vec3Df d1 = d0 + Vec3Df(xOffset, 0, 0);
-	//	Vec3Df d2 = d1 + Vec3Df(xOffset, 0, 0);
-	//	Vec3Df d3 = d2 + Vec3Df(xOffset, 0, 0);
-	//	Vec3Df d4 = d3 + Vec3Df(xOffset, 0, 0);
-	//	Vec3Df d5 = d4 + Vec3Df(xOffset, 0, 0);
-	//	Vec3Df d6 = d5 + Vec3Df(xOffset, 0, 0);
-	//	Vec3Df d7 = d6 + Vec3Df(xOffset, 0, 0);
-	//	d0 = normalize_vector(d0);
-	//	d1 = normalize_vector(d1);
-	//	d2 = normalize_vector(d2);
-	//	d3 = normalize_vector(d3);
-	//	d4 = normalize_vector(d4);
-	//	d5 = normalize_vector(d5);
-	//	d6 = normalize_vector(d6);
-	//	d7 = normalize_vector(d7);
-	//	rs->dx8[i] = _mm256_setr_ps(d0.get_x(), d1.get_x(), d2.get_x(), d3.get_x(), d4.get_x(), d5.get_x(), d6.get_x(), d7.get_x());
-	//	rs->dy8[i] = _mm256_setr_ps(d0.get_y(), d1.get_y(), d2.get_y(), d3.get_y(), d4.get_y(), d5.get_y(), d6.get_y(), d7.get_y());
-	//	rs->dz8[i] = _mm256_setr_ps(d0.get_z(), d1.get_z(), d2.get_z(), d3.get_z(), d4.get_z(), d5.get_z(), d6.get_z(), d7.get_z());
-
-	//	rs->len8[i] = _mm256_set1_ps(100.f);
-	//	rs->depth8[i] = _mm256_setzero_si256();
-	//}
-
-	//Vec3Df* traceResult = rs->trace();
-	//for (unsigned int y = 0; y < height; y++)
-	//{
-	//	for (unsigned int x = 0; x < width; x++)
-	//	{
-	//		Vec3Df argb = traceResult[y * width + x] * Vec3Df(255);
-
-	//		// Convert color
-	//		unsigned int xy = x * 4 + (y * width) * 4;
-	//		*(pixelBuffer + xy) = std::min((int)argb.extract(0), 255);
-	//		*(pixelBuffer + xy + 1) = std::min((int)argb.extract(1), 255);
-	//		*(pixelBuffer + xy + 2) = std::min((int)argb.extract(2), 255);
-	//		*(pixelBuffer + xy + 3) = 0;
-	//	}
-	//}
 #else
 	Vec3Df rayStartDir = camera->getRelTopLeft();
 	float xOffset = (float)SCREEN_DIMENSION * 2 / (width - 1);

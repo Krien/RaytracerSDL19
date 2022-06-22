@@ -38,16 +38,31 @@ inline AvxVector3 normalize(__m256 x, __m256 y, __m256 z) {
 	return AvxVector3{ normX, normY, normZ };
 }
 
+
+inline __m256 dot_product(__m256 x1, __m256 y1, __m256 z1, __m256 x2, __m256 y2, __m256 z2) {
+	return _mm256_fmadd_ps(_mm256_mul_ps(x1, x2), _mm256_mul_ps(y1, y2), _mm256_mul_ps(z1, z2));
+
+}
+
+inline __m256 dot_product(__m256 x, __m256 y, __m256 z) {
+	return dot_product(x, y, z, x, y, z);
+}
+
+inline __m256 vector_length(__m256 x, __m256 y, __m256 z) {
+	return _mm256_sqrt_ps(dot_product(x, y, z));
+}
+
+
 inline AvxVector3 normalize(AvxVector3 v) {
 	return normalize(v.x, v.y, v.z);
 }
 
 inline __m256 dot_product(AvxVector3 v1, AvxVector3 v2) {
-	return _mm256_fmadd_ps(_mm256_mul_ps(v1.x, v2.x), _mm256_mul_ps(v1.y, v2.y), _mm256_mul_ps(v1.z, v2.z));
+	return dot_product(v1.x, v1.y, v1.z, v2.y, v2.y, v2.z);
 }
 
 inline __m256 vector_length(AvxVector3 v) {
-	return _mm256_sqrt_ps(dot_product(v, v));
+	return vector_length(v.x, v.y, v.z);
 }
 
 inline AvxVector3 add(AvxVector3 v1, AvxVector3 v2) {
