@@ -24,6 +24,7 @@ void RaySystem::init(Scene* scene, Camera* camera) {
 
 	startX = _mm256_set1_ps(startDir.get_x());
 	startY = _mm256_set1_ps(startDir.get_y());
+	startZ = _mm256_set1_ps(startDir.get_z());
 
 	ox = _mm256_set1_ps(camPos.get_x());
 	oy = _mm256_set1_ps(camPos.get_y());
@@ -45,7 +46,7 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 			_mm256_set_ps(x * xOffset, x + 1 * xOffset, x + 2 * xOffset, x + 3 * xOffset, x + 4 * xOffset, x + 5 * xOffset, x + 6 * xOffset, x + 7 * xOffset));
 		__m256 dy = _mm256_add_ps(startY,
 			_mm256_set_ps(y * yOffset, y + 1 * yOffset, y + 2 * yOffset, y + 3 * yOffset, y + 4 * yOffset, y + 5 * yOffset, y + 6 * yOffset, y + 7 * yOffset));
-		__m256 dz = _mm256_setzero_ps(); 
+		__m256 dz = startZ;
 		AvxVector3 norm = normalize(dx, dy, dz); 
 
 		dirX[i] = norm.x;
@@ -120,13 +121,14 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 
 	// -- hit function  currently not fully AVX --
 
-	HitInfo* h = new HitInfo[AVX_SIZE];
-	for (size_t j = 0; j < AVX_SIZE; j++)
+	HitInfo h[AVX_SIZE];
+	for (unsigned int j = 0; j < AVX_SIZE; j++)
 	{
+		h[j] = { Vec3Df(0),Vec3Df(0),1000 };
 		Ray r = { Vec3Df(dx.m256_f32[j], dy.m256_f32[j], dz.m256_f32[j]), Vec3Df(ox.m256_f32[j], oy.m256_f32[j], oz.m256_f32[j]), len.m256_f32[j] };
-		for (size_t i = 0; i < shapeSize; i++)
+		for (unsigned int i = 0; i < shapeSize; i++)
 		{
-			if (shapes[i]->hit(r, h + j)) break;
+			shapes[i]->hit(r, &h[j]); 
 		}
 	}
 

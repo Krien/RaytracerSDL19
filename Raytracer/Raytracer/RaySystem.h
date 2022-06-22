@@ -53,7 +53,7 @@ private:
 	std::vector<Light*> lights;
 
 	float xOffset, yOffset;
-	__m256 startX, startY;
+	__m256 startX, startY, startZ;
 	__m256 ox, oy, oz;
 	__m256 rayLen;
 };
