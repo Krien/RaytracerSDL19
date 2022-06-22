@@ -39,16 +39,15 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 	// Initialize ray values
 	for (unsigned int i = 0; i < (height * width) / AVX_SIZE; i++)
 	{ 
-		float x = i * AVX_SIZE % width;
-		float y = i * AVX_SIZE / width;  
+		int x = i * AVX_SIZE % width;
+		int y = i * AVX_SIZE / width;  
 		__m256 dx = _mm256_add_ps(startX,
 			_mm256_setr_ps(x * xOffset, (x + 1) * xOffset, (x + 2) * xOffset, (x + 3) * xOffset,
 				(x + 4) * xOffset, (x + 5) * xOffset, (x + 6) * xOffset, (x + 7) * xOffset));
 		__m256 dy = _mm256_add_ps(startY,
-			_mm256_setr_ps(y * yOffset, (y + 1) * yOffset, (y + 2) * yOffset, (y + 3) * yOffset,
-				(y + 4) * yOffset, (y + 5) * yOffset, (y + 6) * yOffset, (y + 7) * yOffset));
-		__m256 dz = startZ;
-		AvxVector3 norm = normalize(dx, dy, dz); 
+			_mm256_set1_ps(y * yOffset));
+		
+		AvxVector3 norm = normalize(dx, dy, startZ); 
 
 		dirX[i] = norm.x;
 		dirY[i] = norm.y;
@@ -69,7 +68,7 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 		b[j] = _mm256_min_ps(_mm256_mul_ps(b[j], maxColor8), maxColor8);
 		
 		// Please check later if this is correct lol
-		float x = j * AVX_SIZE % width;
+		int x = j * AVX_SIZE % width;
 		float y = j * AVX_SIZE / width;
 		
 		for (unsigned int c = 0; c < 8; c++) {
