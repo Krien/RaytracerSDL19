@@ -73,11 +73,11 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 		
 		for (unsigned int c = 0; c < 8; c++) {
 			unsigned int startIndex = x * 4 + (y * width) * 4;
-			*(pixelBuffer + startIndex) = r[j].m256_f32[c];
-			*(pixelBuffer + startIndex + 1) = g[j].m256_f32[c];
-			*(pixelBuffer + startIndex + 2) = b[j].m256_f32[c];
-			*(pixelBuffer + startIndex + 3) = 0;
-			x += 8;
+			pixelBuffer[startIndex] = r[j].m256_f32[c];
+			pixelBuffer[startIndex + 1] = g[j].m256_f32[c];
+			pixelBuffer[startIndex + 2] = b[j].m256_f32[c];
+			pixelBuffer[startIndex + 3] = 0;
+			x += 1;
 		} 
 	}
 
