@@ -5,11 +5,15 @@ Vec3Df whiteDiffuse = Vec3Df(1);
 Vec3Df whiteSpecular = Vec3Df(1);
 Vec3Df blueDiffuse = Vec3Df(1, 0, 0);
 Vec3Df redDiffuse = Vec3Df(0, 0, 1);
+Vec3Df pinkDiffuse = Vec3Df(1, 0, 1);
+Vec3Df orangeDiffuse = Vec3Df(0, 0.5f, 1);
 Vec3Df refractNorm = Vec3Df(1);
 
-const Material matLUT[2] = {
-	{ whiteAmbient, whiteDiffuse, whiteSpecular, refractNorm, 0, 3.000293f }, // blue mirror
-	{ whiteAmbient, redDiffuse, whiteSpecular, refractNorm, 0, 0 } // solid red
+const Material matLUT[4] = {
+	{ whiteAmbient, whiteDiffuse, whiteSpecular, refractNorm, 0, 3.000293f }, // blue refract
+	{ whiteAmbient, redDiffuse, whiteSpecular, refractNorm, 0, 0 }, // solid red
+	{ whiteAmbient, orangeDiffuse, whiteSpecular, refractNorm, 0, 0 }, // solid orange
+	{ whiteAmbient, pinkDiffuse, whiteSpecular * 0.5f, refractNorm, 0, 0 }, // pinkwall
 };
 
 Shape::Shape(int id, int mat_id)

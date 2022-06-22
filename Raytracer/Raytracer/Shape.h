@@ -1,8 +1,9 @@
 #pragma once
 
-#define BLUE_MIRROR 0
+#define BLUE_REFRACT 0
 #define SOLID_RED 1
-
+#define SOLID_ORANGE 2
+#define PINK_WALL 3
 class Shape {
 public:
 	Shape(int id, int mid);
