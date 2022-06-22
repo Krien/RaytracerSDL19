@@ -147,7 +147,8 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	// mirror ray
 	AvxVector3 mirrDir = normalize(sub(rayDir, mul(hitNormal, dotDirNor * 2)));
 	AvxVector3 hitPos = { hitInfo.px, hitInfo.py, hitInfo.pz };
-	AvxVector3 newOriginM = add(hitPos, mul(mirrDir, _mm256_set1_ps(RAY_MIGRAINE)));
+	__m256 migraine8 = _mm256_set1_ps(RAY_MIGRAINE);
+	AvxVector3 newOriginM = add(hitPos, mul(mirrDir, migraine8));
 	originX[ind] = newOriginM.x;
 	originY[ind] = newOriginM.y;
 	originZ[ind] = newOriginM.z;
@@ -158,7 +159,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	AvxVector3 mCol = trace(ind, depth + 1);
 
 	// refracted ray
-	AvxVector3 newOriginR = add(hitPos, mul(refractDir, _mm256_set1_ps(RAY_MIGRAINE)));
+	AvxVector3 newOriginR = add(hitPos, mul(refractDir, migraine8));
 	originX[ind] = newOriginR.x;
 	originY[ind] = newOriginR.y;
 	originZ[ind] = newOriginR.z;
@@ -169,10 +170,50 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	AvxVector3 rCol = trace(ind, depth + 1);
 
 	// two rays bounced on one hit
-	AvxVector3 color = add(mul(mul(k, R), mCol), mul(rCol, _mm256_sub_ps(one8, R)));
-	r[ind] = _mm256_mul_ps(color.x, refracMask);
-	g[ind] = _mm256_mul_ps(color.y, refracMask);
-	b[ind] = _mm256_mul_ps(color.z, refracMask);
+	AvxVector3 color1 = add(mul(mul(k, R), mCol), mul(rCol, _mm256_sub_ps(one8, R)));
+
+	__m256 colx = hitInfo.mat.ambx;
+	__m256 coly = hitInfo.mat.amby;
+	__m256 colz = hitInfo.mat.ambz;
+
+	AvxVector3 diffCol = { hitInfo.mat.diffx, hitInfo.mat.diffy, hitInfo.mat.diffz };
+	AvxVector3 specCol = { hitInfo.mat.specx, hitInfo.mat.specy, hitInfo.mat.specz };
+	for (Light* l : lights)
+	{
+		AvxVector3 lPos = { _mm256_set1_ps(l->position.get_x()), _mm256_set1_ps(l->position.get_y()), _mm256_set1_ps(l->position.get_z()) };
+		AvxVector3 lightDist = sub(lPos, hitPos);
+		__m256 lightMask = _mm256_cmp_ps(dot_product(hitNormal, lightDist), zero8, _CMP_LT_OS);
+
+		AvxVector3 lightV = normalize(lightDist);
+		__m256 lightDistAbs = vector_length(lightDist);
+		__m256 shadowLength = _mm256_sub_ps(lightDistAbs, _mm256_mul_ps(migraine8, _mm256_set1_ps(2)));
+
+		AvxVector3 halfVector = normalize(sub(lightV, rayDir));
+		AvxVector3 lightInt = { _mm256_set1_ps(l->intensity.get_x()), _mm256_set1_ps(l->intensity.get_y()), _mm256_set1_ps(l->intensity.get_z()) };
+		AvxVector3 diffuse = mul(lightInt, _mm256_rcp_ps(lightDistAbs));
+
+		AvxVector3 blinnphong = mul(mul(diffCol, lightInt), _mm256_max_ps(zero8, dot_product(hitNormal, lightV)));
+		__m256 specCoef = _mm256_pow_ps(_mm256_max_ps(zero8, dot_product(hitNormal, halfVector)), _mm256_set1_ps(BLINN_PHONG_POWER));
+		AvxVector3 specular = mul(mul(diffCol, specCol), mul(lightInt, specCoef));
+		
+		AvxVector3 lightColor = mul(diffuse, add(blinnphong, specular));
+		colx = _mm256_add_ps(colx, lightColor.x);
+		coly = _mm256_add_ps(coly, lightColor.y);
+		colx = _mm256_add_ps(colz, lightColor.z);
+	}
+
+	AvxVector3 calcLight = { colx, coly, colz };
+	AvxVector3 normalCol = mul(calcLight, diffCol);
+	__m256 mirror8 = hitInfo.mat.mirror;
+	__m256 mirrorMask = _mm256_cmp_ps(mirror8, zero8, _CMP_EQ_OS);
+	AvxVector3 mirrCol = mul(diffCol, mCol);
+	AvxVector3 finalCol = add(mul(mirrCol, mirror8), mul(normalCol, _mm256_sub_ps(one8, mirror8)));
+
+	AvxVector3 color2 = { _mm256_blendv_ps(normalCol.x, finalCol.x, mirrorMask), _mm256_blendv_ps(normalCol.y, finalCol.y, mirrorMask), _mm256_blendv_ps(normalCol.z, finalCol.z, mirrorMask) };
+	r[ind] = _mm256_blendv_ps(color1.x, color2.x, refracMask);
+	g[ind] = _mm256_blendv_ps(color1.y, color2.y, refracMask);
+	b[ind] = _mm256_blendv_ps(color1.y, color2.y, refracMask);
+
 	return { r[ind], g[ind], b[ind] };
 
 	//if (hitInfo.material.refracIndex > 1)

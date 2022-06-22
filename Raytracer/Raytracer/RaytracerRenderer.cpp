@@ -178,9 +178,7 @@ Vec3Df RaytracerRenderer::calculateLight(HitInfo hitI, Vec3Df direction)
 			continue;
 		Vec3Df lightV = normalize_vector(lightDist);
 		// blocked
-		Vec3Df shadowOrigin = hitI.hitPos + lightV * Vec3Df(RAY_MIGRAINE);
 		float shadowLength = (float)(vector_length(lightDist) - 2 * RAY_MIGRAINE);
-		Ray shadowR = { shadowOrigin, lightV, shadowLength };
 		// Diffuse
 		Vec3Df halfVector = normalize_vector(lightV - direction);
 		Vec3Df diffuse = l->intensity / vector_length(lightDist);
