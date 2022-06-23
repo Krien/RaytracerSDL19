@@ -159,6 +159,7 @@
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="Plane.cpp" />
+    <ClCompile Include="RaySystem.cpp" />
     <ClCompile Include="Raytracer.cpp" />
     <ClCompile Include="RaytracerRenderer.cpp" />
     <ClCompile Include="Renderer.cpp" />
@@ -174,6 +175,7 @@
     <ClInclude Include="Light.h" />
     <ClInclude Include="Plane.h" />
     <ClInclude Include="precomp.h" />
+    <ClInclude Include="RaySystem.h" />
     <ClInclude Include="Raytracer.h" />
     <ClInclude Include="RaytracerRenderer.h" />
     <ClInclude Include="Renderer.h" />

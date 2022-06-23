@@ -51,7 +51,7 @@ Raytracer/deps/*
 *.userosscache
 *.sln.docstates
 
-# User-specific files (MonoDevelop/Xamarin Studio)
+# User-specific files (MonoDevelop/Xamarin Studiov
 *.userprefs
 
 # Mono auto generated files
@@ -436,6 +436,4 @@ FodyWeavers.xsd
 *.msp
 
 # JetBrains Rider
-*.sln.iml
-*.vcxproj
-*.filters
+*.sln.iml 
