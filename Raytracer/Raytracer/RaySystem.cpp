@@ -317,7 +317,8 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 
 	// c = dot_product(rayDir, hitInfo.normal);
 	// float c_comp = 1 - c;
-	__m256 c_comp = _mm256_sub_ps(one8, _mm256_mul_ps(dotDirNor0, hitDirMult));
+	__m256 rayDirMult = _mm256_blendv_ps(one8, minusOne8, hitDirMask);
+	__m256 c_comp = _mm256_sub_ps(one8, _mm256_mul_ps(dotDirNor0, rayDirMult));
 
 	// float R = R0 + (1 - R0) * c_comp * c_comp * c_comp * c_comp * c_comp;
 	__m256 c_compPow2 = _mm256_mul_ps(c_comp, c_comp);
