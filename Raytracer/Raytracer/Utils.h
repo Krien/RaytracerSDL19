@@ -1,11 +1,36 @@
 #pragma once
 
+
+struct Ray8 {
+	__m256 ox, oy, oz;
+	__m256 dx, dy, dz;
+	__m256 len;
+};
+struct Mat8 {
+	__m256 ambientX, ambientY, ambientZ;
+	__m256 diffuseX, diffuseY, diffuseZ;
+	__m256 specularX, specularY, specularZ;
+	__m256 absorbX, absorbY, absorbZ;
+	__m256 mirror;
+	__m256 refracIndex;
+};
+
+struct HitInfo8 {
+	__m256 nx, ny, nz;
+	__m256 px, py, pz;
+	__m256 dist;
+	__m256 matId; 
+};
+
+
 // READ ONLY struct
 struct AvxVector3 {
 	const __m256 x;
 	const __m256 y;
 	const __m256 z;
 };
+
+
 
 // Helper functions before I found out agner had his own :(.
 inline float vec4f_length(Vec4f in)

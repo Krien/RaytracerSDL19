@@ -1,23 +1,6 @@
 #pragma once
 #include "xmmintrin.h"
 
-struct Mat_Avx {
-	__m256 ambx, amby, ambz;
-	__m256 diffx, diffy, diffz;
-	__m256 specx, specy, specz;
-	__m256 absx, absy, absz;
-	__m256 mirror;
-	__m256 refracIndex;
-};
-
-struct HitInfo_Avx {
-	__m256 nx, ny, nz;
-	__m256 px, py, pz;
-	__m256 dist;
-	Mat_Avx mat;
-	__m256i id;
-};
-
 class RaySystem
 {
 public:

@@ -7,6 +7,7 @@ class Sphere : public Shape
 		Vec3Df position;
 		Sphere(int id, int mid, Vec3Df position, float radius);
 		~Sphere();
-		bool hit(Ray r, HitInfo* hit) override;
+		void hit(Ray r, HitInfo* hit) override;
+		void hit(Ray8 ray, HitInfo8* hit) override;
 		bool fastHit(Ray r) override;
 };

@@ -23,7 +23,7 @@ void RaytracerRenderer::draw(int iteration)
 	lights = currentScene->lights;
 	lightSize = lights.size();
 	lastId = -1;
-#if 0
+#if 1
 	rs->init(currentScene, camera);
 	rs->draw(pixelBuffer);
 #else
@@ -60,9 +60,7 @@ Vec3Df RaytracerRenderer::trace(Ray ray, int depth)
 	HitInfo hitInfo = { Vec3Df(0),Vec3Df(0),1000 };
 	for (size_t i = 0; i < shapeSize; i++)
 	{
-		bool earlyOut = shapes[i]->hit(ray, &hitInfo);
-		if (earlyOut)
-			break;
+		shapes[i]->hit(ray, &hitInfo);
 	}
 	// Not a hit, so return
 	if (hitInfo.distance > RAYTRACER_MAX_RENDERDISTANCE)
