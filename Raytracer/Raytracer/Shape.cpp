@@ -18,13 +18,13 @@ const Material matLUT[MATERIAL_COUNT] = {
 };
 
 const static Mat8* matLUT8 = Shape::initMatLut8(matLUT);
-
+static Mat8 preCalc;
 Shape::Shape(int id, int mat_id)
 {
 	Shape::id = id;
 	Shape::mat = matLUT[mat_id];
 	Shape::mid8 = _mm256_set1_ps(mat_id);
-    Shape:id8 = _mm256_set1_epi32(id); 
+    Shape:id8 = _mm256_set1_epi32(id);  
 }
 
 Mat8* Shape::initMatLut8(const Material matLUT[5]) {
@@ -83,6 +83,9 @@ Mat8 Shape::blendMats(__m256 matIds) {
 	for (unsigned int i = 0; i < MATERIAL_COUNT; i++) {
 		Mat8 compareMaterial = Shape::getMat8(i);
 		__m256 material_mask = _mm256_cmp_ps(matIds, _mm256_set1_ps(i), _CMP_EQ_OS);
+		if(_mm256_movemask_ps(material_mask) == 0) {
+			continue;
+		}
 		result.ambientX = _mm256_blendv_ps(result.ambientX, compareMaterial.ambientX, material_mask);
 		result.ambientY = _mm256_blendv_ps(result.ambientY, compareMaterial.ambientY, material_mask);
 		result.ambientZ = _mm256_blendv_ps(result.ambientZ, compareMaterial.ambientZ, material_mask);

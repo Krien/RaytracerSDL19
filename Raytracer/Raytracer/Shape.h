@@ -19,5 +19,5 @@ public:
 	static Mat8* initMatLut8(const Material matLUT[5]);
 	static Material getMat(int mid);
 	static Mat8 getMat8(int mid); 
-	static Mat8 blendMats(__m256 matIds);
+	static Mat8 blendMats(__m256 matIds);  
 };
