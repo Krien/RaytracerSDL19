@@ -203,13 +203,22 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 
 	// End of the lighting part
 
-	// Refraction part
 
+	// Refraction part
 	__m256 one8 = _mm256_set1_ps(1);
 	__m256 minusOne8 = _mm256_set1_ps(-1);
-	__m256 matRefracIndex = hitInfo.mat.refracIndex;
-	// refraction mask
+	__m256 matRefracIndex = mat.refracIndex;
 	__m256 refracMask = _mm256_cmp_ps(matRefracIndex, one8, _CMP_GT_OS);
+	if (_mm256_movemask_ps(refracMask) == 0) {
+		r[ind] = _mm256_blendv_ps(calcLightR, zero8, distMask);
+		g[ind] = _mm256_blendv_ps(calcLightG, zero8, distMask);
+		b[ind] = _mm256_blendv_ps(calcLightB, zero8, distMask);
+
+		return { r[ind], g[ind], b[ind] };
+	}
+	
+	// refraction mask
+	
 
 	//	bool cond = dot_product(ray.direction, hitInfo.normal) < 0;
 	__m256 dotDirNor0 = dot_product(hitInfo.nx, hitInfo.ny, hitInfo.nz, dx, dy, dz);
@@ -222,7 +231,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	__m256 hitDirZ = _mm256_mul_ps(hitInfo.nz, hitDirMult);
 	
 	// float refracIndex = cond ? hitInfo.material.refracIndex : (1 / hitInfo.material.refracIndex);
-	__m256 refracIndex = _mm256_blendv_ps(_mm256_rcp_ps(hitInfo.mat.refracIndex), hitInfo.mat.refracIndex, hitDirMask);
+	__m256 refracIndex = _mm256_blendv_ps(_mm256_rcp_ps(mat.refracIndex), mat.refracIndex, hitDirMask);
 	
 	// float cosTheta = rayCosTheta(ray, hitNormal, refracIndex);
 	__m256 dotDirNor = dot_product(dx, dy, dz, hitDirX, hitDirY, hitDirZ);
@@ -273,9 +282,9 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	AvxVector3 rCol = trace(ind, depth + 1);
 
 	// Vec3Df power = -hitInfo.material.absorbtion * refractDir;
-	__m256 powerX = _mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.absx, minusOne8), refractDirX);
-	__m256 powerY = _mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.absy, minusOne8), refractDirY);
-	__m256 powerZ = _mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.absz, minusOne8), refractDirZ);
+	__m256 powerX = _mm256_mul_ps(_mm256_mul_ps(mat.absorbX, minusOne8), refractDirX);
+	__m256 powerY = _mm256_mul_ps(_mm256_mul_ps(mat.absorbY, minusOne8), refractDirY);
+	__m256 powerZ = _mm256_mul_ps(_mm256_mul_ps(mat.absorbZ, minusOne8), refractDirZ);
 
 	// k = Vec3Df(pow(E, power[0]), pow(E, power[1]), pow(E, power[2]));
 	__m256 e8 = _mm256_set1_ps(E);
