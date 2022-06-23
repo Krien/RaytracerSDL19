@@ -133,10 +133,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 		Ray r = { Vec3Df(ox.m256_f32[j], oy.m256_f32[j], oz.m256_f32[j]), Vec3Df(dx.m256_f32[j], dy.m256_f32[j], dz.m256_f32[j]), len.m256_f32[j] };
 		for (unsigned int i = 0; i < shapeSize; i++)
 		{
-			bool earlyOut = shapes[i]->hit(r, &h[j]); 
-			if (earlyOut) {
-				break;
-			}
+			shapes[i]->hit(r, &h[j]); 
 		}
 	}
 
@@ -253,7 +250,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	
 	// float cosTheta = rayCosTheta(ray, hitNormal, refracIndex);
 	__m256 dotDirNor = dot_product(dx, dy, dz, hitDirX, hitDirY, hitDirZ);
-	__m256 cosTheta = _mm256_div_ps(_mm256_sub_ps(one8, _mm256_mul_ps(_mm256_set1_ps(1.000586f), _mm256_sub_ps(one8, _mm256_mul_ps(dotDirNor, dotDirNor)))), _mm256_mul_ps(refracIndex, refracIndex));
+	__m256 cosTheta = _mm256_sub_ps(one8, _mm256_div_ps(_mm256_mul_ps(_mm256_set1_ps(1.000586f), _mm256_sub_ps(one8, _mm256_mul_ps(dotDirNor, dotDirNor))), _mm256_mul_ps(refracIndex, refracIndex)));
 	
 	// bool refracted = cosTheta >= 0;
 	__m256 refractedMask = _mm256_cmp_ps(cosTheta, zero8, _CMP_GT_OS);
