@@ -206,21 +206,110 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	// Refraction part
 
 	__m256 one8 = _mm256_set1_ps(1);
-	__m256 minusOne8 = _mm256_set1_ps(-11);
-	__m256 matRefracIndex = mat.refracIndex;
+	__m256 minusOne8 = _mm256_set1_ps(-1);
+	__m256 matRefracIndex = hitInfo.mat.refracIndex;
 	// refraction mask
 	__m256 refracMask = _mm256_cmp_ps(matRefracIndex, one8, _CMP_GT_OS);
 
 	//	bool cond = dot_product(ray.direction, hitInfo.normal) < 0;
-	__m256 hitDirMask = _mm256_cmp_ps(dot_product(hitInfo.nx, hitInfo.ny, hitInfo.nz, dx, dy, dz), zero8, _CMP_LT_OS);
-
+	__m256 dotDirNor0 = dot_product(hitInfo.nx, hitInfo.ny, hitInfo.nz, dx, dy, dz);
+	__m256 hitDirMask = _mm256_cmp_ps(dotDirNor0, zero8, _CMP_LT_OS);
+	
+	// Vec3Df hitNormal = hitInfo.normal * (cond ? 1 : -1);
 	__m256 hitDirMult = _mm256_blendv_ps(minusOne8, one8, hitDirMask);
 	__m256 hitDirX = _mm256_mul_ps(hitInfo.nx, hitDirMult);
 	__m256 hitDirY = _mm256_mul_ps(hitInfo.ny, hitDirMult);
 	__m256 hitDirZ = _mm256_mul_ps(hitInfo.nz, hitDirMult);
+	
+	// float refracIndex = cond ? hitInfo.material.refracIndex : (1 / hitInfo.material.refracIndex);
+	__m256 refracIndex = _mm256_blendv_ps(_mm256_rcp_ps(hitInfo.mat.refracIndex), hitInfo.mat.refracIndex, hitDirMask);
+	
+	// float cosTheta = rayCosTheta(ray, hitNormal, refracIndex);
+	__m256 dotDirNor = dot_product(dx, dy, dz, hitDirX, hitDirY, hitDirZ);
+	__m256 cosTheta = _mm256_sub_ps(one8, _mm256_div_ps(_mm256_mul_ps(_mm256_set1_ps(1.000586f), _mm256_sub_ps(one8, _mm256_mul_ps(dotDirNor, dotDirNor))), _mm256_mul_ps(refracIndex, refracIndex)));
+	
+	// bool refracted = cosTheta >= 0;
+	__m256 refractedMask = _mm256_cmp_ps(cosTheta, zero8, _CMP_GT_OS);
 
+	// Vec3Df refractDir = refracted ? refractRay(ray, hitNormal, refracIndex, cosTheta) : Vec3Df(0);
+	// Vec3Df sinPhi = (r.refracIndex * (r.direction - normal * dot_product(r.direction, normal))) / rIndex;
+	// Vec3Df refractDir = normalize_vector(sinPhi - normal * Vec3Df(sqrtf(rayCosTheta)));
+	__m256 mulNormHit = _mm256_mul_ps(hitInfo.nx, dotDirNor);
+	__m256 sinPhiX = _mm256_div_ps(_mm256_mul_ps(_mm256_sub_ps(dx, mulNormHit), _mm256_set1_ps(1.000293f)), refracIndex);
+	__m256 sinPhiY = _mm256_div_ps(_mm256_mul_ps(_mm256_sub_ps(dy, mulNormHit), _mm256_set1_ps(1.000293f)), refracIndex);
+	__m256 sinPhiZ = _mm256_div_ps(_mm256_mul_ps(_mm256_sub_ps(dz, mulNormHit), _mm256_set1_ps(1.000293f)), refracIndex);
+	__m256 sqrtCosTheta = _mm256_sqrt_ps(cosTheta);
+	__m256 refDirX = _mm256_sub_ps(sinPhiX, _mm256_mul_ps(hitInfo.nx, sqrtCosTheta));
+	__m256 refDirY = _mm256_sub_ps(sinPhiY, _mm256_mul_ps(hitInfo.ny, sqrtCosTheta));
+	__m256 refDirZ = _mm256_sub_ps(sinPhiZ, _mm256_mul_ps(hitInfo.nz, sqrtCosTheta));
+	AvxVector3 refDirVec = normalize(refDirX, refDirY, refDirZ);
+	__m256 refractDirX = _mm256_blendv_ps(zero8, refDirVec.x, refractedMask);
+	__m256 refractDirY = _mm256_blendv_ps(zero8, refDirVec.y, refractedMask);
+	__m256 refractDirZ = _mm256_blendv_ps(zero8, refDirVec.z, refractedMask);
 
+	// trace(mirrorRay(ray.direction, hitInfo), depth + 1)
+	__m256 doubleDotDirNor0 = _mm256_add_ps(dotDirNor0, dotDirNor0);
+	__m256 mirrDirX = _mm256_sub_ps(dx, _mm256_mul_ps(hitInfo.nx, doubleDotDirNor0));
+	__m256 mirrDirY = _mm256_sub_ps(dy, _mm256_mul_ps(hitInfo.ny, doubleDotDirNor0));
+	__m256 mirrDirZ = _mm256_sub_ps(dz, _mm256_mul_ps(hitInfo.nz, doubleDotDirNor0));
+	AvxVector3 mirrDir = normalize(mirrDirX, mirrDirY, mirrDirZ);
+	originX[ind] = _mm256_add_ps(hitInfo.px, _mm256_mul_ps(migraine8, mirrDir.x));
+	originY[ind] = _mm256_add_ps(hitInfo.py, _mm256_mul_ps(migraine8, mirrDir.y));
+	originZ[ind] = _mm256_add_ps(hitInfo.pz, _mm256_mul_ps(migraine8, mirrDir.z));
+	dirX[ind] = mirrDir.x;
+	dirY[ind] = mirrDir.y;
+	dirZ[ind] = mirrDir.z;
+	length[ind] = _mm256_set1_ps(1000);
+	AvxVector3 mCol = trace(ind, depth + 1);
 
+	// trace(refractedRay, depth + 1)
+	originX[ind] = _mm256_add_ps(hitInfo.px, _mm256_mul_ps(migraine8, refractDirX));
+	originY[ind] = _mm256_add_ps(hitInfo.py, _mm256_mul_ps(migraine8, refractDirY));
+	originZ[ind] = _mm256_add_ps(hitInfo.pz, _mm256_mul_ps(migraine8, refractDirZ));
+	dirX[ind] = refractDirX;
+	dirY[ind] = refractDirY;
+	dirZ[ind] = refractDirZ;
+	length[ind] = _mm256_set1_ps(1000);
+	AvxVector3 rCol = trace(ind, depth + 1);
+
+	// Vec3Df power = -hitInfo.material.absorbtion * refractDir;
+	__m256 powerX = _mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.absx, minusOne8), refractDirX);
+	__m256 powerY = _mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.absy, minusOne8), refractDirY);
+	__m256 powerZ = _mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.absz, minusOne8), refractDirZ);
+
+	// k = Vec3Df(pow(E, power[0]), pow(E, power[1]), pow(E, power[2]));
+	__m256 e8 = _mm256_set1_ps(E);
+	__m256 kx = _mm256_pow_ps(e8, powerX);
+	__m256 ky = _mm256_pow_ps(e8, powerY);
+	__m256 kz = _mm256_pow_ps(e8, powerZ);
+	kx = _mm256_blendv_ps(kx, one8, hitDirMask);
+	ky = _mm256_blendv_ps(ky, one8, hitDirMask);
+	kz = _mm256_blendv_ps(kz, one8, hitDirMask);
+	
+	// float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
+	__m256 refIdMinusOne = _mm256_sub_ps(matRefracIndex, one8);
+	__m256 refIdPlusOne = _mm256_add_ps(matRefracIndex, one8);
+	__m256 R0 = _mm256_div_ps(_mm256_mul_ps(refIdMinusOne, refIdMinusOne), _mm256_mul_ps(refIdPlusOne, refIdPlusOne));
+
+	// c = dot_product(rayDir, hitInfo.normal);
+	// float c_comp = 1 - c;
+	__m256 rayDirMult = _mm256_blendv_ps(one8, minusOne8, hitDirMask);
+	__m256 c_comp = _mm256_sub_ps(one8, _mm256_mul_ps(dotDirNor0, rayDirMult));
+
+	// float R = R0 + (1 - R0) * c_comp * c_comp * c_comp * c_comp * c_comp;
+	__m256 c_compPow2 = _mm256_mul_ps(c_comp, c_comp);
+	__m256 c_compPow5 = _mm256_mul_ps(_mm256_mul_ps(c_compPow2, c_compPow2), c_comp);
+	__m256 R = _mm256_add_ps(R0, _mm256_mul_ps(_mm256_sub_ps(one8, R0), c_compPow5));
+
+	// return k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
+	__m256 cx = _mm256_mul_ps(kx, _mm256_add_ps(_mm256_mul_ps(R, mCol.x), _mm256_mul_ps(_mm256_sub_ps(one8, R), rCol.x)));
+	__m256 cy = _mm256_mul_ps(ky, _mm256_add_ps(_mm256_mul_ps(R, mCol.y), _mm256_mul_ps(_mm256_sub_ps(one8, R), rCol.y)));
+	__m256 cz = _mm256_mul_ps(kz, _mm256_add_ps(_mm256_mul_ps(R, mCol.z), _mm256_mul_ps(_mm256_sub_ps(one8, R), rCol.z)));
+
+	__m256 finalMask = _mm256_or_ps(hitDirMask, refractedMask);
+	cx = _mm256_blendv_ps(mCol.x, cx, finalMask);
+	cy = _mm256_blendv_ps(mCol.y, cy, finalMask);
+	cz = _mm256_blendv_ps(mCol.z, cz, finalMask);
 
 	//__m256 hitDirX = 
 	//if (hitInfo.material.refracIndex > 1)
@@ -255,9 +344,14 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	//	return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
 	//}
 	// end of refraction part
-	r[ind] = _mm256_blendv_ps(calcLightR, zero8, distMask);
-	g[ind] = _mm256_blendv_ps(calcLightG, zero8, distMask);
-	b[ind] = _mm256_blendv_ps(calcLightB, zero8, distMask);
 
-	return { r[ind], g[ind], b[ind] };
-}
+	cx = _mm256_blendv_ps(calcLightR, cx, refracMask);
+	cy = _mm256_blendv_ps(calcLightG, cy, refracMask);
+	cz = _mm256_blendv_ps(calcLightB, cz, refracMask);
+
+	r[ind] = _mm256_blendv_ps(cx, zero8, distMask);
+	g[ind] = _mm256_blendv_ps(cy, zero8, distMask);
+	b[ind] = _mm256_blendv_ps(cz, zero8, distMask);
+	 
+	return { r[ind], g[ind], b[ind] }; 
+}  
