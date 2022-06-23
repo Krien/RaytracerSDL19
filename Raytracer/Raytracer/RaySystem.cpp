@@ -327,8 +327,8 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 
 	// return k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
 	__m256 cx = _mm256_mul_ps(kx, _mm256_add_ps(_mm256_mul_ps(R, mCol.x), _mm256_mul_ps(_mm256_sub_ps(one8, R), rCol.x)));
-	__m256 cy = _mm256_mul_ps(ky, _mm256_add_ps(_mm256_mul_ps(R, mCol.x), _mm256_mul_ps(_mm256_sub_ps(one8, R), rCol.x)));
-	__m256 cz = _mm256_mul_ps(kz, _mm256_add_ps(_mm256_mul_ps(R, mCol.x), _mm256_mul_ps(_mm256_sub_ps(one8, R), rCol.x)));
+	__m256 cy = _mm256_mul_ps(ky, _mm256_add_ps(_mm256_mul_ps(R, mCol.y), _mm256_mul_ps(_mm256_sub_ps(one8, R), rCol.y)));
+	__m256 cz = _mm256_mul_ps(kz, _mm256_add_ps(_mm256_mul_ps(R, mCol.z), _mm256_mul_ps(_mm256_sub_ps(one8, R), rCol.z)));
 
 	__m256 finalMask = _mm256_or_ps(hitDirMask, refractedMask);
 	cx = _mm256_blendv_ps(mCol.x, cx, finalMask);
