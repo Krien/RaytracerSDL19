@@ -311,13 +311,13 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	kz = _mm256_blendv_ps(kz, one8, hitDirMask);
 	
 	// float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
-	__m256 refIdMinusOne = _mm256_sub_ps(hitInfo.mat.refracIndex, one8);
-	__m256 refIdPlusOne = _mm256_add_ps(hitInfo.mat.refracIndex, one8);
+	__m256 refIdMinusOne = _mm256_sub_ps(matRefracIndex, one8);
+	__m256 refIdPlusOne = _mm256_add_ps(matRefracIndex, one8);
 	__m256 R0 = _mm256_div_ps(_mm256_mul_ps(refIdMinusOne, refIdMinusOne), _mm256_mul_ps(refIdPlusOne, refIdPlusOne));
 
 	// c = dot_product(rayDir, hitInfo.normal);
 	// float c_comp = 1 - c;
-	__m256 c_comp = _mm256_sub_ps(one8, dotDirNor0);
+	__m256 c_comp = _mm256_sub_ps(one8, _mm256_mul_ps(dotDirNor0, hitDirMult));
 
 	// float R = R0 + (1 - R0) * c_comp * c_comp * c_comp * c_comp * c_comp;
 	__m256 c_compPow2 = _mm256_mul_ps(c_comp, c_comp);
