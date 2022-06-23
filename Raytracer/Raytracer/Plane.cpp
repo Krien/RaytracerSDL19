@@ -30,12 +30,13 @@ void Plane::hit(Ray8 ray, HitInfo8* hit)
 	__m256 tPositiveMask = _mm256_cmp_ps(t, _mm256_setzero_ps(), _CMP_GE_OS);
 	__m256 closerCollisionMask = _mm256_cmp_ps(t, hit->dist, _CMP_LT_OS);
 	__m256 collisionMask = _mm256_and_ps(tPositiveMask, closerCollisionMask);
-	hit->nx = _mm256_blendv_ps(_mm256_sub_ps(_mm256_setzero_ps(), nx), hit->nx, collisionMask);
-	hit->ny = _mm256_blendv_ps(_mm256_sub_ps(_mm256_setzero_ps(), ny), hit->ny, collisionMask);
-	hit->nz = _mm256_blendv_ps(_mm256_sub_ps(_mm256_setzero_ps(), nz), hit->nz, collisionMask);
-	hit->px = _mm256_blendv_ps(_mm256_add_ps(ray.ox, _mm256_mul_ps(ray.dx, t)), hit->nz, collisionMask);
-	hit->py = _mm256_blendv_ps(_mm256_add_ps(ray.oy, _mm256_mul_ps(ray.dy, t)), hit->nz, collisionMask);
-	hit->pz = _mm256_blendv_ps(_mm256_add_ps(ray.oz, _mm256_mul_ps(ray.dz, t)), hit->nz, collisionMask);
+	hit->nx = _mm256_blendv_ps(hit->nx, _mm256_sub_ps(_mm256_setzero_ps(), nx), collisionMask);
+	hit->ny = _mm256_blendv_ps(hit->ny, _mm256_sub_ps(_mm256_setzero_ps(), ny), collisionMask);
+	hit->nz = _mm256_blendv_ps(hit->nz, _mm256_sub_ps(_mm256_setzero_ps(), nz), collisionMask);
+	
+	hit->px = _mm256_blendv_ps(hit->px, _mm256_add_ps(ray.ox, _mm256_mul_ps(ray.dx, t)), collisionMask);
+	hit->py = _mm256_blendv_ps(hit->py, _mm256_add_ps(ray.oy, _mm256_mul_ps(ray.dy, t)), collisionMask);
+	hit->pz = _mm256_blendv_ps(hit->pz, _mm256_add_ps(ray.oz, _mm256_mul_ps(ray.dz, t)), collisionMask);
 	hit->dist = _mm256_blendv_ps(hit->dist, t, collisionMask);
 	hit->matId = _mm256_blendv_ps(hit->matId, mid8, collisionMask); 
 }

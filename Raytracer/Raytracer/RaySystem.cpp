@@ -129,18 +129,16 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	// -- hit function  currently not fully AVX --
 
 	Ray8 r8 = { ox, oy, oz, dx, dy, dz, len };
-	HitInfo8 hit8 = HitInfo8();
+	HitInfo8 hitInfo = HitInfo8();
 	//debug to see if it hit anything
-	hit8.matId = _mm256_set1_ps(-1);
-	hit8.dist = _mm256_set1_ps(FLT_MAX);
+	hitInfo.matId = _mm256_set1_ps(-1);
+	hitInfo.dist = _mm256_set1_ps(FLT_MAX);
 	for (unsigned int i = 0; i < shapeSize; i++)
 	{
-		shapes[i]->hit(r8, &hit8);
+		shapes[i]->hit(r8, &hitInfo);
 	}
-	Mat8 mat = Shape::blendMats(hit8.matId);
+	Mat8 mat = Shape::blendMats(hitInfo.matId);
 
-
-	HitInfo8 hitInfo = HitInfo8();
 
 	// end of hit function
 
