@@ -229,9 +229,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	// End of the lighting part
 
 	// Refraction part
-
-	
-	__m256 distMask = _mm256_cmp_ps(hitInfo.dist, _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS);
+	 
 	__m256 one8 = _mm256_set1_ps(1);
 	__m256 minusOne8 = _mm256_set1_ps(-11);
 	__m256 matRefracIndex = hitInfo.mat.refracIndex;
