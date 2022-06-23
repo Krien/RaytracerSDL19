@@ -2,14 +2,14 @@
 
 Scene::Scene()
 {
-	/*Sphere* test1 = new Sphere(0, SOLID_RED, Vec3Df(-1.0f, -0.9f, 3), 0.5f);
+	Sphere* test1 = new Sphere(0, SOLID_RED, Vec3Df(-1.0f, -0.9f, 3), 0.5f);
 	objects.push_back(test1);
 	Sphere* test2 = new Sphere(1, SOLID_GREEN, Vec3Df(0, -0.9f, 3), 0.5f);
 	objects.push_back(test2);
 	Sphere* test3 = new Sphere(1, SOLID_BLUE, Vec3Df(1, -0.9f, 3), 0.5f);
+	objects.push_back(test3);
+	/*Sphere* test3 = new Sphere(2, BLUE_MIRROR, Vec3Df(2, -0.9f, 3), 0.5f);
 	objects.push_back(test3);*/
-	//Sphere* test3 = new Sphere(2, BLUE_MIRROR, Vec3Df(2, -0.9f, 3), 0.5f);
-	//objects.push_back(test3);
 
 	Plane* pDown = new Plane(3, SOLID_BLUE, Vec3Df(0, 1, 0), -0.1f);
 	Plane* pUp = new Plane(4, PINK_WALL, Vec3Df(0, 1, 0), -5);
@@ -25,7 +25,7 @@ Scene::Scene()
 	objects.push_back(pBack);
 	Light*l1 = new Light(Vec3Df(0.5f, -4, 0.3f), Vec3Df(1));
 	lights.push_back(l1);
-}
+} 
 
 Scene::Scene(std::vector<Shape*> objects)
 {
