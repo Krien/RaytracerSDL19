@@ -139,9 +139,14 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	}
 	Mat8 mat = Shape::blendMats(hitInfo.matId); 
 
+	
 	// distance mask
-	__m256 distMask = _mm256_cmp_ps(hitInfo.dist, _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS);
+	__m256 distMask = _mm256_cmp_ps(hitInfo.dist, _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS); 
 
+	// max value of 8 bits, all rays out of range
+	//if (_mm256_movemask_ps(distMask) == 255) {
+	//	return zeroVec;
+	//}
 	AvxVector3 rayDir = { dx, dy, dz };
 	__m256 migraine8 = _mm256_set1_ps(RAY_MIGRAINE);
 
@@ -268,7 +273,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	dirX[ind] = mirrDir.x;
 	dirY[ind] = mirrDir.y;
 	dirZ[ind] = mirrDir.z;
-	length[ind] = _mm256_set1_ps(1000);
+	length[ind] = rayLen;
 	AvxVector3 mCol = trace(ind, depth + 1);
 
 	// trace(refractedRay, depth + 1)
@@ -278,7 +283,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	dirX[ind] = refractDirX;
 	dirY[ind] = refractDirY;
 	dirZ[ind] = refractDirZ;
-	length[ind] = _mm256_set1_ps(1000);
+	length[ind] = rayLen;
 	AvxVector3 rCol = trace(ind, depth + 1);
 
 	// Vec3Df power = -hitInfo.material.absorbtion * refractDir;
@@ -318,40 +323,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	__m256 finalMask = _mm256_or_ps(hitDirMask, refractedMask);
 	cx = _mm256_blendv_ps(mCol.x, cx, finalMask);
 	cy = _mm256_blendv_ps(mCol.y, cy, finalMask);
-	cz = _mm256_blendv_ps(mCol.z, cz, finalMask);
-
-	//__m256 hitDirX = 
-	//if (hitInfo.material.refracIndex > 1)
-	//{
-	//	// Init beers law
-	//	Vec3Df k = Vec3Df(1);
-	//	float c = 0;
-	//	lastId = hitInfo.id;
-
-	//	bool cond = dot_product(ray.direction, hitInfo.normal) < 0;
-	//	Vec3Df hitNormal = hitInfo.normal * (cond ? 1 : -1);
-	//	float refracIndex = cond ? hitInfo.material.refracIndex : (1 / hitInfo.material.refracIndex);
-	//	// Obtuse angle
-	//	float cosTheta = rayCosTheta(ray, hitNormal, refracIndex);
-	//	bool refracted = cosTheta >= 0;
-	//	Vec3Df refractDir = refracted ? refractRay(ray, hitNormal, refracIndex, cosTheta) : Vec3Df(0);
-	//	if (!cond)
-	//	{
-	//		if (!refracted)
-	//		{
-	//			return trace(mirrorRay(ray.direction, hitInfo), depth + 1);
-	//		}
-	//		Vec3Df power = -hitInfo.material.absorbtion * refractDir;
-	//		k = Vec3Df(pow(E, power[0]), pow(E, power[1]), pow(E, power[2]));
-	//	}
-	//	Ray refractedRay = { hitInfo.hitPos + refractDir * Vec3Df(RAY_MIGRAINE), refractDir, 1000 };
-	//	Vec3Df rayDir = cond ? -ray.direction : ray.direction;
-	//	c = dot_product(rayDir, hitInfo.normal);
-	//	float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
-	//	float c_comp = 1 - c;
-	//	float R = R0 + (1 - R0) * c_comp * c_comp * c_comp * c_comp * c_comp;
-	//	return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
-	//}
+	cz = _mm256_blendv_ps(mCol.z, cz, finalMask); 
 	// end of refraction part
 
 	cx = _mm256_blendv_ps(calcLightR, cx, refracMask);
