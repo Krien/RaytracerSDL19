@@ -126,8 +126,8 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	__m256 oz = originZ[ind];
 	__m256 len = length[ind];
 
-	// -- hit function  currently not fully AVX --
 
+	// Check for hits
 	Ray8 r8 = { ox, oy, oz, dx, dy, dz, len };
 	HitInfo8 hitInfo = HitInfo8();
 	//debug to see if it hit anything
@@ -137,10 +137,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	{
 		shapes[i]->hit(r8, &hitInfo);
 	}
-	Mat8 mat = Shape::blendMats(hitInfo.matId);
-
-
-	// end of hit function
+	Mat8 mat = Shape::blendMats(hitInfo.matId); 
 
 	// distance mask
 	__m256 distMask = _mm256_cmp_ps(hitInfo.dist, _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS);
