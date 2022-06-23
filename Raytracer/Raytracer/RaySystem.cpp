@@ -179,7 +179,9 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 
 		//	Vec3Df specular = hitI.material.diffuseColor * hitI.material.specularColor * l->intensity;
 		//	specular *= Vec3Df((float)pow(std::max(0.0f, dot_product(hitI.normal, halfVector)), BLINN_PHONG_POWER));
-		__m256 specCoeff = _mm256_pow_ps(_mm256_max_ps(zero8, dot_product(hitInfo.nx, hitInfo.ny, hitInfo.nz, halfVector.x, halfVector.y, halfVector.z)), _mm256_set1_ps(BLINN_PHONG_POWER));
+		
+		__m256 specCoeff = _mm256_max_ps(zero8, dot_product(hitInfo.nx, hitInfo.ny, hitInfo.nz, halfVector.x, halfVector.y, halfVector.z));
+		specCoeff = pow(Vec8f(specCoeff), BLINN_PHONG_POWER);
 		__m256 specularX = _mm256_mul_ps(_mm256_mul_ps(_mm256_mul_ps(mat.specularX, mat.diffuseX), l->intensity8), specCoeff);
 		__m256 specularY = _mm256_mul_ps(_mm256_mul_ps(_mm256_mul_ps(mat.specularY, mat.diffuseY), l->intensity8), specCoeff);
 		__m256 specularZ = _mm256_mul_ps(_mm256_mul_ps(_mm256_mul_ps(mat.specularZ, mat.diffuseZ), l->intensity8), specCoeff);
@@ -192,9 +194,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 		//	argb += lightColor;
 		calcLightR = _mm256_add_ps(calcLightR, _mm256_blendv_ps(_mm256_mul_ps(blinnX, diffuse), zero8, lightMask));
 		calcLightG = _mm256_add_ps(calcLightG, _mm256_blendv_ps(_mm256_mul_ps(blinnY, diffuse), zero8, lightMask));
-		calcLightB = _mm256_add_ps(calcLightB, _mm256_blendv_ps(_mm256_mul_ps(blinnZ, diffuse), zero8, lightMask));
-
-
+		calcLightB = _mm256_add_ps(calcLightB, _mm256_blendv_ps(_mm256_mul_ps(blinnZ, diffuse), zero8, lightMask)); 
 	}
 	// Vec3Df normalCol = calculateLight(hitInfo, ray.direction) * hitInfo.material.diffuseColor;
 	calcLightR = _mm256_mul_ps(calcLightR, mat.diffuseX);
