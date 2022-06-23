@@ -142,12 +142,16 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	
 	// distance mask
 	__m256 distMask = _mm256_cmp_ps(hitInfo.dist, _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS); 
-
+	// Refraction part
+	__m256 one8 = _mm256_set1_ps(1);
+	__m256 minusOne8 = _mm256_set1_ps(-1);
+	__m256 matRefracIndex = mat.refracIndex;
+	__m256 refracMask = _mm256_cmp_ps(matRefracIndex, one8, _CMP_GT_OS);
+	
 	// max value of 8 bits, all rays out of range
-	//if (_mm256_movemask_ps(distMask) == 255) {
-	//	return zeroVec;
-	//}
-	AvxVector3 rayDir = { dx, dy, dz };
+	if (_mm256_movemask_ps(distMask) == 255) {
+		return zeroVec;
+	}
 	__m256 migraine8 = _mm256_set1_ps(RAY_MIGRAINE);
 
 	// Normal diffuse lighting for non refractive objects
@@ -209,11 +213,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	// End of the lighting part
 
 
-	// Refraction part
-	__m256 one8 = _mm256_set1_ps(1);
-	__m256 minusOne8 = _mm256_set1_ps(-1);
-	__m256 matRefracIndex = mat.refracIndex;
-	__m256 refracMask = _mm256_cmp_ps(matRefracIndex, one8, _CMP_GT_OS);
+	
 	if (_mm256_movemask_ps(refracMask) == 0) {
 		r[ind] = _mm256_blendv_ps(calcLightR, zero8, distMask);
 		g[ind] = _mm256_blendv_ps(calcLightG, zero8, distMask);
