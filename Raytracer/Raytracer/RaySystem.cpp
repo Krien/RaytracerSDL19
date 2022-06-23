@@ -284,9 +284,9 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	//	return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
 	//}
 	// end of refraction part
-	r[ind] = _mm256_blendv_ps(_mm256_mul_ps(calcLightR, hitInfo.mat.diffx), zero8, distMask); 
-	g[ind] = _mm256_blendv_ps(_mm256_mul_ps(calcLightG, hitInfo.mat.diffy), zero8, distMask);
-	b[ind] = _mm256_blendv_ps(_mm256_mul_ps(calcLightB, hitInfo.mat.diffz), zero8, distMask);
+	r[ind] = _mm256_blendv_ps(calcLightR, zero8, distMask); 
+	g[ind] = _mm256_blendv_ps(calcLightG, zero8, distMask);
+	b[ind] = _mm256_blendv_ps(calcLightB, zero8, distMask);
 	 
 	return { r[ind], g[ind], b[ind] }; 
-} 
+}  

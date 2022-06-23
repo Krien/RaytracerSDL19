@@ -2,8 +2,9 @@
 
 #define BLUE_REFRACT 0
 #define SOLID_RED 1
-#define SOLID_ORANGE 2
-#define PINK_WALL 3
+#define SOLID_GREEN 2
+#define SOLID_BLUE 3
+#define PINK_WALL 4
 class Shape {
 public:
 	Shape(int id, int mid);
