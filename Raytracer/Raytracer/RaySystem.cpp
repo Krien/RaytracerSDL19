@@ -169,8 +169,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	// distance mask
 	__m256 distMask = _mm256_cmp_ps(hitInfo.dist, _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS);
 
-	AvxVector3 rayDir = { dx, dy, dz };
-	AvxVector3 hitNormal = { hitInfo.nx, hitInfo.ny, hitInfo.nz };
+	AvxVector3 rayDir = { dx, dy, dz }; 
 	__m256 migraine8 = _mm256_set1_ps(RAY_MIGRAINE); 
 	
 	// Normal diffuse lighting for non refractive objects
@@ -209,7 +208,7 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 		
 		//	Vec3Df specular = hitI.material.diffuseColor * hitI.material.specularColor * l->intensity;
 	    //	specular *= Vec3Df((float)pow(std::max(0.0f, dot_product(hitI.normal, halfVector)), BLINN_PHONG_POWER));
-		__m256 specCoeff = _mm256_pow_ps(_mm256_max_ps(zero8, dot_product(hitNormal, halfVector)), _mm256_set1_ps(BLINN_PHONG_POWER));
+		__m256 specCoeff = _mm256_pow_ps(_mm256_max_ps(zero8, dot_product(hitInfo.nx, hitInfo.ny, hitInfo.nz, halfVector.x, halfVector.y, halfVector.z)), _mm256_set1_ps(BLINN_PHONG_POWER));
 		__m256 specularX = _mm256_mul_ps(_mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.specx, hitInfo.mat.diffx), lightInt), specCoeff);
 		__m256 specularY = _mm256_mul_ps(_mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.specy, hitInfo.mat.diffy), lightInt), specCoeff);
 		__m256 specularZ = _mm256_mul_ps(_mm256_mul_ps(_mm256_mul_ps(hitInfo.mat.specz, hitInfo.mat.diffz), lightInt), specCoeff);
@@ -226,6 +225,11 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 		
 		
 	} 
+	// Vec3Df normalCol = calculateLight(hitInfo, ray.direction) * hitInfo.material.diffuseColor;
+	calcLightR = _mm256_mul_ps(calcLightR, hitInfo.mat.diffx);
+	calcLightG = _mm256_mul_ps(calcLightG, hitInfo.mat.diffy);
+	calcLightB = _mm256_mul_ps(calcLightB, hitInfo.mat.diffz);
+	
 	// End of the lighting part
 
 	// Refraction part

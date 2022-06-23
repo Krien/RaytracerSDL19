@@ -27,18 +27,6 @@ inline Vec4i vec4f_toColor(Vec4f in)
 	//return (((int)in.extract(0) << 24) | ((int)in.extract(1) << 16)) | (((int)in.extract(2) << 8) | ((int)in.extract(3)));
 }
 
-
-inline AvxVector3 normalize(__m256 x, __m256 y, __m256 z) {
-	__m256 invLen = _mm256_invsqrt_ps(
-		_mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(x, x), _mm256_mul_ps(y, y)), _mm256_mul_ps(z, z))
-	);
-	__m256 normX = _mm256_mul_ps(invLen, x);
-	__m256 normY = _mm256_mul_ps(invLen, y);
-	__m256 normZ = _mm256_mul_ps(invLen, z);
-	return AvxVector3{ normX, normY, normZ };
-}
-
-
 inline __m256 dot_product(__m256 x1, __m256 y1, __m256 z1, __m256 x2, __m256 y2, __m256 z2) {
 	return _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(x1, x2), _mm256_mul_ps(y1, y2)), _mm256_mul_ps(z1, z2));
 
@@ -50,6 +38,14 @@ inline __m256 dot_product(__m256 x, __m256 y, __m256 z) {
 
 inline __m256 vector_length(__m256 x, __m256 y, __m256 z) {
 	return _mm256_sqrt_ps(dot_product(x, y, z));
+}
+
+inline AvxVector3 normalize(__m256 x, __m256 y, __m256 z) {
+	__m256 invLen = _mm256_invsqrt_ps(dot_product(x, y, z));
+	__m256 normX = _mm256_mul_ps(invLen, x);
+	__m256 normY = _mm256_mul_ps(invLen, y);
+	__m256 normZ = _mm256_mul_ps(invLen, z);
+	return AvxVector3{ normX, normY, normZ };
 }
 
 
