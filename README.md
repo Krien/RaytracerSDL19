@@ -9,9 +9,9 @@ Code then optimized for the INFOMOV course by [@Lightning2X](https://github.com/
 See the table below for detailed results:
 | STAT     | AVG    | MIN   | MAX   |
 |----------|--------|-------|-------|
-| NEW      | 126.63 | 96.64 | 154.1 |
+| NEW      | 116.50 | 81.30 | 141.24 |
 | OLD      | 5.03   | 4.91  | 5.09  |
-| X FASTER | 25     | 20    | 30    |
+| X FASTER | 23     | 17    | 28    |
 
 # RUNNING THE CODE
 This repo (currently) only contains the logic itself. This will NOT compile without adding libraries and setting a few settings. The instructions for this are described below
