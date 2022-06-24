@@ -1,7 +1,8 @@
 #include "precomp.h"
 #include "Shape.h" 
 #include <limits.h>
-#include "xmmintrin.h"
+#include "xmmintrin.h" 
+#include <omp.h>
 #define SIZE SCREEN_WIDTH * SCREEN_HEIGHT
 
 RaySystem::RaySystem(Screen* screen)
@@ -37,11 +38,14 @@ void RaySystem::init(Scene* scene, Camera* camera) {
 	rayLen = _mm256_set1_ps(100);
 }
 
-void RaySystem::draw(Pixel* pixelBuffer) {
 
-	// #pragma unroll
+void RaySystem::draw(Pixel* pixelBuffer) {
+	 
 	// Initialize ray values
-	for (unsigned int i = 0; i < (height * width) / AVX_SIZE; i++)
+
+	int totalSize = (height * width) / AVX_SIZE;
+		
+	for (unsigned int i = 0; i < totalSize; i++)
 	{
 		int x = i * AVX_SIZE % width;
 		int y = i * AVX_SIZE / width;
@@ -60,11 +64,27 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 		originY[i] = oy;
 		originZ[i] = oz;
 		length[i] = rayLen;
-	}
-	for (unsigned int j = 0; j < (height * width) / AVX_SIZE; j++)
-		trace(j, 0);
+	}  
+	
+	/*for (unsigned int j = 0; j < (height * width) / AVX_SIZE; j++)
+		traceStart(j);*/
+	 
+	
+	int iam, nt, isize, istart;
 
-	for (unsigned int j = 0; j < (height * width) / AVX_SIZE; j++)
+
+	omp_set_num_threads(16);
+#pragma omp parallel default(shared) private(iam,nt,isize,istart)
+	{
+		iam = omp_get_thread_num();
+		nt = omp_get_num_threads();
+		isize = totalSize / nt; /* size of partition */
+		istart = iam * isize; /* starting array index */
+		if (iam == nt - 1) /* last thread may do more */
+			isize = totalSize - istart;
+		traceParallel(istart, istart + isize);
+	}
+	for (unsigned int j = 0; j < totalSize; j++)
 	{
 		__m256 maxColor8 = _mm256_set1_ps(255.0f);
 		r[j] = _mm256_min_ps(_mm256_mul_ps(r[j], maxColor8), maxColor8);
@@ -85,6 +105,12 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 	} 
 }
 
+void RaySystem::traceParallel(int startIndex, int endIndex) {
+	for (int i = startIndex; i < endIndex; i++) {
+		trace(i, 0);
+	}
+		
+}
 
 // No idea what this should return, but probably a colorX, colorY and colorZ thats why its returning a __m256 array 
 AvxVector3 RaySystem::trace(int ind, int depth)

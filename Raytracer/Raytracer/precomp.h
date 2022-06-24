@@ -23,7 +23,7 @@
 #define RAY_MIGRAINE 0.0001F
 #define BLINN_PHONG_POWER 130
 
-#define SIMD 1
+#define SIMD 1 
 
 #ifdef _WIN32
 #include <Windows.h>

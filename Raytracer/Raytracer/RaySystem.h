@@ -21,8 +21,8 @@ public:
 	//__m256i depth[RAY_COUNT];
 	void draw(Pixel* pixelBuffer);
 	void init(Scene* scene, Camera* camera);
-	AvxVector3 trace(int ind, int depth);
-	void hit(int ind);
+	void traceParallel(int startIndex, int endIndex);
+	AvxVector3 trace(int ind, int depth); 
 
 private:
 	Scene* scene = NULL;
