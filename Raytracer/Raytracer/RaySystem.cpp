@@ -49,7 +49,7 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 		traceStart(j);*/
 	 
 	int iam, nt, isize, istart;
-	omp_set_num_threads(32);
+	omp_set_num_threads(omp_get_max_threads());
 #pragma omp parallel default(shared) private(iam,nt,isize,istart)
 	{
 		iam = omp_get_thread_num();
