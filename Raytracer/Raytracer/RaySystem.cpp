@@ -43,10 +43,29 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 	 
 	// Initialize ray values
 
-	int totalSize = (height * width) / AVX_SIZE;
-		
-	for (unsigned int i = 0; i < totalSize; i++)
+	int totalSize = (height * width) / AVX_SIZE; 
+	
+	/*for (unsigned int j = 0; j < (height * width) / AVX_SIZE; j++)
+		traceStart(j);*/
+	 
+	int iam, nt, isize, istart;
+	omp_set_num_threads(32);
+#pragma omp parallel default(shared) private(iam,nt,isize,istart)
 	{
+		iam = omp_get_thread_num();
+		nt = omp_get_num_threads();
+		isize = totalSize / nt; /* size of partition */
+		istart = iam * isize; /* starting array index */
+		if (iam == nt - 1) /* last thread may do more */
+			isize = totalSize - istart;
+		drawParallel(istart, istart + isize, pixelBuffer);
+	}
+	
+}
+
+void RaySystem::drawParallel(int startIndex, int endIndex, Pixel* pixelBuffer) {
+	for (int i = startIndex; i < endIndex; i++) {
+
 		int x = i * AVX_SIZE % width;
 		int y = i * AVX_SIZE / width;
 		__m256 dx = _mm256_add_ps(startX,
@@ -64,50 +83,21 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 		originY[i] = oy;
 		originZ[i] = oz;
 		length[i] = rayLen;
-	}  
-	
-	/*for (unsigned int j = 0; j < (height * width) / AVX_SIZE; j++)
-		traceStart(j);*/
-	 
-	
-	int iam, nt, isize, istart;
+		
+		trace(i, 0);
 
-
-	omp_set_num_threads(16);
-#pragma omp parallel default(shared) private(iam,nt,isize,istart)
-	{
-		iam = omp_get_thread_num();
-		nt = omp_get_num_threads();
-		isize = totalSize / nt; /* size of partition */
-		istart = iam * isize; /* starting array index */
-		if (iam == nt - 1) /* last thread may do more */
-			isize = totalSize - istart;
-		traceParallel(istart, istart + isize);
-	}
-	for (unsigned int j = 0; j < totalSize; j++)
-	{
 		__m256 maxColor8 = _mm256_set1_ps(255.0f);
-		r[j] = _mm256_min_ps(_mm256_mul_ps(r[j], maxColor8), maxColor8);
-		g[j] = _mm256_min_ps(_mm256_mul_ps(g[j], maxColor8), maxColor8);
-		b[j] = _mm256_min_ps(_mm256_mul_ps(b[j], maxColor8), maxColor8);
-
-		// Please check later if this is correct lol
-		int x = j * AVX_SIZE % width;
-		float y = j * AVX_SIZE / width;
+		r[i] = _mm256_min_ps(_mm256_mul_ps(r[i], maxColor8), maxColor8);
+		g[i] = _mm256_min_ps(_mm256_mul_ps(g[i], maxColor8), maxColor8);
+		b[i] = _mm256_min_ps(_mm256_mul_ps(b[i], maxColor8), maxColor8); 
 
 		for (unsigned int c = 0; c < 8; c++) {
 			unsigned int startIndex = x * 4 + (y * width) * 4;
-			pixelBuffer[startIndex] = r[j].m256_f32[c];
-			pixelBuffer[startIndex + 1] = g[j].m256_f32[c];
-			pixelBuffer[startIndex + 2] = b[j].m256_f32[c]; 
+			pixelBuffer[startIndex] = r[i].m256_f32[c];
+			pixelBuffer[startIndex + 1] = g[i].m256_f32[c];
+			pixelBuffer[startIndex + 2] = b[i].m256_f32[c];
 			x += 1;
 		}
-	} 
-}
-
-void RaySystem::traceParallel(int startIndex, int endIndex) {
-	for (int i = startIndex; i < endIndex; i++) {
-		trace(i, 0);
 	}
 		
 }
