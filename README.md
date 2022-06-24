@@ -10,8 +10,8 @@ See the table below for detailed results:
 | STAT     | AVG    | MIN   | MAX   |
 |----------|--------|-------|-------|
 | NEW      | 116.50 | 81.30 | 141.24 |
-| OLD      | 5.03   | 4.91  | 5.09  |
-| X FASTER | 23     | 17    | 28    |
+| OLD      | 3.83   | 3.54  | 3.88 |
+| X FASTER | 31     | 23    | 36    |
 
 # RUNNING THE CODE
 This repo (currently) only contains the logic itself. This will NOT compile without adding libraries and setting a few settings. The instructions for this are described below
