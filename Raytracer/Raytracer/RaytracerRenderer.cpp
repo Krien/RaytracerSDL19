@@ -23,7 +23,7 @@ void RaytracerRenderer::draw(int iteration)
 	lights = currentScene->lights;
 	lightSize = lights.size();
 	lastId = -1;
-#if 1
+#if SIMD
 	rs->init(currentScene, camera);
 	rs->draw(pixelBuffer);
 #else
