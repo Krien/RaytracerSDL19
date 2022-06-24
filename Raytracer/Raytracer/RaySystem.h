@@ -18,6 +18,7 @@ public:
 	__m256 hitNormX[RAY_COUNT], hitNormY[RAY_COUNT], hitNormZ[RAY_COUNT];
 	__m256 hitDist[RAY_COUNT];
 	__m256 hitMatId[RAY_COUNT];
+	__m256 iterHitPosX[RAY_COUNT], iterHitPosY[RAY_COUNT], iterHitPosZ[RAY_COUNT];
 	//__m256i depth[RAY_COUNT];
 	void draw(Pixel* pixelBuffer);
 	void init(Scene* scene, Camera* camera);

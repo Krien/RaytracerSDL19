@@ -126,6 +126,9 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 		shapes[i]->hit(ox, oy, oz, dx, dy, dz, len, hitNormX[ind], hitNormY[ind], hitNormZ[ind], hitPosX[ind], hitPosY[ind], hitPosZ[ind], hitDist[ind], hitMatId[ind]);
 	} 
 	Mat8 mat = Shape::blendMats(hitMatId[ind]);
+	iterHitPosX[ind] = hitPosX[ind];
+	iterHitPosY[ind] = hitPosY[ind];
+	iterHitPosZ[ind] = hitPosZ[ind];
 	
 	// distance mask
 	__m256 distMask = _mm256_cmp_ps(hitDist[ind], _mm256_set1_ps(RAYTRACER_MAX_RENDERDISTANCE), _CMP_GT_OS); 
@@ -149,9 +152,9 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	{
 
 		// Vec3Df lightDist = l->position - hitI.hitPos;
-		const __m256 lightDistx = _mm256_sub_ps(l->posX, hitPosX[ind]);
-		const __m256 lightDisty = _mm256_sub_ps(l->posY, hitPosY[ind]);
-		const __m256 lightDistz = _mm256_sub_ps(l->posZ, hitPosZ[ind]);
+		const __m256 lightDistx = _mm256_sub_ps(l->posX, iterHitPosX[ind]);
+		const __m256 lightDisty = _mm256_sub_ps(l->posY, iterHitPosY[ind]);
+		const __m256 lightDistz = _mm256_sub_ps(l->posZ, iterHitPosZ[ind]);
 
 		//if (dot_product(hitI.normal, lightDist) < 0)
 		//	continue;
@@ -208,7 +211,6 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 
 		return { r[ind], g[ind], b[ind] };
 	}
-	
 	// refraction mask
 	
 
@@ -253,10 +255,12 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	__m256 mirrDirX = _mm256_sub_ps(dx, _mm256_mul_ps(hitNormX[ind], doubleDotDirNor0));
 	__m256 mirrDirY = _mm256_sub_ps(dy, _mm256_mul_ps(hitNormY[ind], doubleDotDirNor0));
 	__m256 mirrDirZ = _mm256_sub_ps(dz, _mm256_mul_ps(hitNormZ[ind], doubleDotDirNor0));
-	AvxVector3 mirrDir = normalize(mirrDirX, mirrDirY, mirrDirZ);
-	originX[ind] = _mm256_add_ps(hitPosX[ind], _mm256_mul_ps(migraine8, mirrDir.x));
-	originY[ind] = _mm256_add_ps(hitPosY[ind], _mm256_mul_ps(migraine8, mirrDir.y));
-	originZ[ind] = _mm256_add_ps(hitPosZ[ind], _mm256_mul_ps(migraine8, mirrDir.z));
+	AvxVector3 mirrDir = normalize(mirrDirX, mirrDirY, mirrDirZ);  
+	
+	
+	originX[ind] = _mm256_add_ps(iterHitPosX[ind], _mm256_mul_ps(migraine8, mirrDir.x));
+	originY[ind] = _mm256_add_ps(iterHitPosY[ind], _mm256_mul_ps(migraine8, mirrDir.y));
+	originZ[ind] = _mm256_add_ps(iterHitPosZ[ind], _mm256_mul_ps(migraine8, mirrDir.z));
 	dirX[ind] = mirrDir.x;
 	dirY[ind] = mirrDir.y;
 	dirZ[ind] = mirrDir.z;
@@ -264,9 +268,9 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	AvxVector3 mCol = trace(ind, depth + 1);
 
 	// trace(refractedRay, depth + 1)
-	originX[ind] = _mm256_add_ps(hitPosX[ind], _mm256_mul_ps(migraine8, refractDirX));
-	originY[ind] = _mm256_add_ps(hitPosY[ind], _mm256_mul_ps(migraine8, refractDirY));
-	originZ[ind] = _mm256_add_ps(hitPosZ[ind], _mm256_mul_ps(migraine8, refractDirZ));
+	originX[ind] = _mm256_add_ps(iterHitPosX[ind], _mm256_mul_ps(migraine8, mirrDir.x));
+	originY[ind] = _mm256_add_ps(iterHitPosY[ind], _mm256_mul_ps(migraine8, mirrDir.y));
+	originZ[ind] = _mm256_add_ps(iterHitPosZ[ind], _mm256_mul_ps(migraine8, mirrDir.z));
 	dirX[ind] = refractDirX;
 	dirY[ind] = refractDirY;
 	dirZ[ind] = refractDirZ;
