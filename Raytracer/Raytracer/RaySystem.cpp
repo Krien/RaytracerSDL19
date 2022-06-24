@@ -77,36 +77,10 @@ void RaySystem::draw(Pixel* pixelBuffer) {
 			unsigned int startIndex = x * 4 + (y * width) * 4;
 			pixelBuffer[startIndex] = r[j].m256_f32[c];
 			pixelBuffer[startIndex + 1] = g[j].m256_f32[c];
-			pixelBuffer[startIndex + 2] = b[j].m256_f32[c];
-			pixelBuffer[startIndex + 3] = 0;
+			pixelBuffer[startIndex + 2] = b[j].m256_f32[c]; 
 			x += 1;
 		}
-	}
-
-	/*
-	Vec3Df rayStartDir = camera->getRelTopLeft();
-	float xOffset = (float)SCREEN_DIMENSION * 2 / (width - 1);
-	float yOffset = (float)SCREEN_DIMENSION * 2 / (height - 1);
-	#pragma unroll
-	for (unsigned int y = 0; y < height; y++)
-	{
-		for (unsigned int x = 0; x < width; x++)
-		{
-			// Make ray
-			Vec3Df direction = rayStartDir + Vec3Df(x * xOffset, y * yOffset, 0);
-			direction = normalize_vector(direction);
-			Ray r = { camera->position, direction, 100 };
-			// Check for hits
-			Vec3Df argb = trace(r,0) * Vec3Df(255);
-
-			// Convert color
-			unsigned int xy = x * 4 + (y * width) * 4;
-			*(pixelBuffer + xy) = std::min((int)argb.extract(0), 255);
-			*(pixelBuffer + xy+1) = std::min((int)argb.extract(1), 255);
-			*(pixelBuffer + xy+2) = std::min((int)argb.extract(2), 255);
-			*(pixelBuffer + xy + 3) = 0;
-		}
-	};*/
+	} 
 }
 
 
