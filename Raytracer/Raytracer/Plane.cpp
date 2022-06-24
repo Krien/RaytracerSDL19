@@ -2,6 +2,7 @@
 
 Plane::Plane(int id, int mid, Vec3Df normal, float distance) : Shape(id, mid)
 {
+	type = 0;
 	Plane::distance = distance;
 	Plane::normal = normal;
 	Plane::nx = _mm256_set1_ps(normal.get_x());

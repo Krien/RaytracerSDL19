@@ -10,6 +10,7 @@ public:
 	Shape(int id, int mid);
 	~Shape();
 	int id;
+	int type;
 	__m256 mid8;
 	__m256i id8;
 	virtual void hit(Ray r, HitInfo* current);

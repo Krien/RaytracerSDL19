@@ -3,6 +3,7 @@
 
 Sphere::Sphere(int id, int mid, Vec3Df position, float radius) : Shape(id, mid)
 {
+	type = 1;
 	Sphere::radius = radius;
 	Sphere::radiusSq = radius * radius;
 	Sphere::position = position;
@@ -11,6 +12,10 @@ Sphere::Sphere(int id, int mid, Vec3Df position, float radius) : Shape(id, mid)
 	Sphere::posX = _mm256_set1_ps(position.get_x());
 	Sphere::posY = _mm256_set1_ps(position.get_y());
 	Sphere::posZ = _mm256_set1_ps(position.get_z());
+}
+
+Sphere::~Sphere()
+{
 }
 
 void Sphere::hit(Ray r, HitInfo* hit)
@@ -98,11 +103,6 @@ void Sphere::hit(__m256 ox, __m256 oy, __m256 oz, __m256 dx, __m256 dy, __m256 d
 	sphereHitInfo.matId = mid8;
 	
 	// else (outside sphere)
-	
-	
-	
-	
-
 	//Vec3Df hitPos = r.origin + r.direction * Vec3Df(t);
 	//Vec3Df normal = normalize_vector(hitPos - position);
 	//*hit = HitInfo{ normal,hitPos,t,mat, id };
