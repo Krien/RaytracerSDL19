@@ -14,17 +14,9 @@ void RaySystem::init(Scene* scene, Camera* camera) {
 	this->scene = scene;
 	this->camera = camera;
 	
-	int shapeSize = scene->objects.size();
-	for(int x = 0; x < shapeSize; x++) {
-		if (scene->objects[x]->type == 1) {
-			spheres.push_back((Sphere*)scene->objects[x]);
-		}
-		else {
-			planes.push_back((Plane*)scene->objects[x]);
-		}
-	}
-	planeSize = planes.size();
-	sphereSize = spheres.size();
+	 
+	shapeSize = shapes.size();
+	shapes = scene->objects;
 	
 	lights = scene->lights;
 	lightSize = lights.size();
@@ -113,12 +105,10 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	__m256 oz = originZ[ind];
 	__m256 len = length[ind]; 
 
-	for (unsigned int i = 0; i < sphereSize; i++) { 
-		//sphereHit(ind, *spheres[i]);
-	}
-	for (unsigned int i = 0; i < planeSize; i++) {
-		planeHit(ind, *planes[i]);
-	}
+	for (unsigned int i = 0; i < shapeSize; i++)
+	{
+		shapes[i]->hit(ox, oy, oz, dx, dy, dz, len, hitNormX[ind], hitNormY[ind], hitNormZ[ind], hitPosX[ind], hitPosY[ind], hitPosZ[ind], hitDist[ind], hitMatId[ind]);
+	} 
 	Mat8 mat = Shape::blendMats(hitMatId[ind]);
 	
 	// distance mask
@@ -316,119 +306,4 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	b[ind] = _mm256_blendv_ps(cz, zero8, distMask);
 	 
 	return { r[ind], g[ind], b[ind] }; 
-}  
-
-
-void RaySystem::sphereHit(int ind, Sphere sphere) {
-	__m256 dx = dirX[ind];
-	__m256 dy = dirY[ind];
-	__m256 dz = dirZ[ind];
-	__m256 ox = originX[ind];
-	__m256 oy = originY[ind];
-	__m256 oz = originZ[ind];
-	__m256 len = length[ind];
-	
-	// Vec3Df c = position - r.origin;
-	// float cLenSq = dot_product(c, c); 
-	__m256 cx = _mm256_sub_ps(sphere.posX, ox);
-	__m256 cy = _mm256_sub_ps(sphere.posY, oy);
-	__m256 cz = _mm256_sub_ps(sphere.posZ, oz);
-
-	/*float t = dot_product(c, r.direction);
-	Vec3Df q = c - Vec3Df(t) * r.direction;
-	float pSquared = dot_product(q, q);*/
-	__m256 t = dot_product(cx, cy, cz, dx, dy, dz);
-	__m256 qx = _mm256_sub_ps(cx, _mm256_mul_ps(dx, t));
-	__m256 qy = _mm256_sub_ps(cy, _mm256_mul_ps(dy, t));
-	__m256 qz = _mm256_sub_ps(cz, _mm256_mul_ps(dz, t));
-	__m256 pSquared = dot_product(qx, qy, qz);
-	t = _mm256_sub_ps(t, _mm256_sqrt_ps(_mm256_sub_ps(sphere.radiusSq8, pSquared)));
-
-	// if (cLenSq < radiusSq)
-	__m256 cLenMask = _mm256_cmp_ps(dot_product(cx, cy, cz), sphere.radiusSq8, _CMP_LT_OQ);
-	// if (radius < r.length) (inside sphere)
-	__m256 shortMask = _mm256_cmp_ps(sphere.radius8, len, _CMP_LT_OQ);
-	__m256 inSphereMask = _mm256_and_ps(cLenMask, shortMask);
-
-	// if (pSquared <= radiusSq)
-	__m256 checkHitMask = _mm256_cmp_ps(pSquared, sphere.radiusSq8, _CMP_LE_OQ);
-	// 	if ((t > 0) && (t < hit->distance)) 
-	__m256 withinEyeAndDistMask = _mm256_and_ps(_mm256_cmp_ps(t, _mm256_set1_ps(0.0f), _CMP_GT_OQ), _mm256_cmp_ps(t, hitDist[ind], _CMP_LT_OQ));
-	__m256 outsideHitMask = _mm256_and_ps(checkHitMask, withinEyeAndDistMask);
-
-	// we precalc all masks in hope of an early out before doing expensive stuff
-	__m256 completeHitMask = _mm256_or_ps(inSphereMask, outsideHitMask);
-
-	if (_mm256_movemask_ps(completeHitMask) == 0) {
-		return;
-	}
-
-	__m256 hitVecX = _mm256_add_ps(ox, _mm256_mul_ps(dx, sphere.radius8));
-	__m256 hitVecY = _mm256_add_ps(oy, _mm256_mul_ps(dy, sphere.radius8));
-	__m256 hitVecZ = _mm256_add_ps(oz, _mm256_mul_ps(dz, sphere.radius8));
-	AvxVector3 normal = normalize(_mm256_sub_ps(hitVecX, sphere.posX), _mm256_sub_ps(hitVecY, sphere.posY), _mm256_sub_ps(hitVecZ, sphere.posZ));
-	__m256 sphereHitNormX = _mm256_sub_ps(_mm256_setzero_ps(), normal.x);
-	__m256 sphereHitNormY = _mm256_sub_ps(_mm256_setzero_ps(), normal.y);
-	__m256 sphereHitNormZ = _mm256_sub_ps(_mm256_setzero_ps(), normal.z);
-	__m256 sphereHitPosX = hitVecX;
-	__m256 sphereHitPosY = hitVecY;
-	__m256 sphereHitPosZ = hitVecZ;
-	__m256 sphereHitDist = sphere.radius8;
-	// mat id is the same so thats why you dont see me reset this later
-	__m256 sphereHitMatId = sphere.mid8;
-
-	// else (outside sphere)
-	//Vec3Df hitPos = r.origin + r.direction * Vec3Df(t);
-	//Vec3Df normal = normalize_vector(hitPos - position);
-	//*hit = HitInfo{ normal,hitPos,t,mat, id };
-	hitVecX = _mm256_add_ps(ox, _mm256_mul_ps(dx, t));
-	hitVecY = _mm256_add_ps(oy, _mm256_mul_ps(dy, t));
-	hitVecZ = _mm256_add_ps(oz, _mm256_mul_ps(dz, t));
-	AvxVector3 normal2 = normalize(_mm256_sub_ps(hitVecX, sphere.posX), _mm256_sub_ps(hitVecY, sphere.posY), _mm256_sub_ps(hitVecZ, sphere.posZ));
-	sphereHitNormX = _mm256_blendv_ps(sphereHitNormX, normal2.x, outsideHitMask);
-	sphereHitNormY = _mm256_blendv_ps(sphereHitNormY, normal2.y, outsideHitMask);
-	sphereHitNormZ = _mm256_blendv_ps(sphereHitNormZ, normal2.z, outsideHitMask);
-	sphereHitPosX = _mm256_blendv_ps(sphereHitPosX, hitVecX, outsideHitMask);
-	sphereHitPosY = _mm256_blendv_ps(sphereHitPosY, hitVecY, outsideHitMask);
-	sphereHitPosZ = _mm256_blendv_ps(sphereHitPosZ, hitVecZ, outsideHitMask);
-	sphereHitDist = _mm256_blendv_ps(sphereHitDist, t, outsideHitMask);
-	
-	hitPosX[ind] = _mm256_blendv_ps(hitPosX[ind], sphereHitPosX, completeHitMask);
-	hitPosY[ind] = _mm256_blendv_ps(hitPosY[ind], sphereHitPosY, completeHitMask);
-	hitPosZ[ind] = _mm256_blendv_ps(hitPosZ[ind], sphereHitPosZ, completeHitMask);
-	hitNormX[ind] = _mm256_blendv_ps(hitNormX[ind], sphereHitNormX, completeHitMask);
-	hitNormY[ind] = _mm256_blendv_ps(hitNormY[ind], sphereHitNormY, completeHitMask);
-	hitNormZ[ind] = _mm256_blendv_ps(hitNormZ[ind], sphereHitNormZ, completeHitMask);
-	hitDist[ind] = _mm256_blendv_ps(hitDist[ind], sphereHitDist, completeHitMask);
-	hitMatId[ind] = _mm256_blendv_ps(hitMatId[ind], sphereHitMatId, completeHitMask);
-}
-
-void RaySystem::planeHit(int ind, Plane plane) {
-	__m256 dx = dirX[ind];
-	__m256 dy = dirY[ind];
-	__m256 dz = dirZ[ind];
-	__m256 ox = originX[ind];
-	__m256 oy = originY[ind];
-	__m256 oz = originZ[ind];
-	__m256 len = length[ind];
-	const __m256 hd = hitDist[ind];
-	
-	__m256 b = dot_product(dx, dy, dz, plane.nx, plane.ny, plane.nz);
-	__m256 a = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_add_ps(plane.dist, dot_product(ox, oy, oz, plane.nx, plane.ny, plane.nz)));
-	__m256 t = _mm256_div_ps(a, b);
-	__m256 tPositiveMask = _mm256_cmp_ps(t, _mm256_setzero_ps(), _CMP_GE_OS);
-	__m256 closerCollisionMask = _mm256_cmp_ps(t, hd, _CMP_LT_OS);
-	__m256 collisionMask = _mm256_and_ps(tPositiveMask, closerCollisionMask);
-
-	if (_mm256_movemask_ps(collisionMask) == 0) {
-		return;
-	}
-	hitNormX[ind] = _mm256_blendv_ps(hitNormX[ind], _mm256_sub_ps(_mm256_setzero_ps(), plane.nx), collisionMask);
-	hitNormY[ind] = _mm256_blendv_ps(hitNormY[ind], _mm256_sub_ps(_mm256_setzero_ps(), plane.ny), collisionMask);
-	hitNormZ[ind] = _mm256_blendv_ps(hitNormZ[ind], _mm256_sub_ps(_mm256_setzero_ps(), plane.nz), collisionMask);
-	hitPosX[ind] = _mm256_blendv_ps(hitPosX[ind], _mm256_add_ps(ox, _mm256_mul_ps(dx, t)), collisionMask);
-	hitPosY[ind] = _mm256_blendv_ps(hitPosY[ind], _mm256_add_ps(oy, _mm256_mul_ps(dy, t)), collisionMask);
-	hitPosZ[ind] = _mm256_blendv_ps(hitPosZ[ind], _mm256_add_ps(oz, _mm256_mul_ps(dz, t)), collisionMask);
-	hitDist[ind] = _mm256_blendv_ps(hitDist[ind], t, collisionMask);
-	hitMatId[ind] = _mm256_blendv_ps(hitMatId[ind], plane.mid8, collisionMask); 
-}
+}   

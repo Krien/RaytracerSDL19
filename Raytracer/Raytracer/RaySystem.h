@@ -23,8 +23,6 @@ public:
 	void init(Scene* scene, Camera* camera);
 	AvxVector3 trace(int ind, int depth);
 	void hit(int ind);
-	void sphereHit(int ind, Sphere sphere);
-	void planeHit(int ind, Plane plane);
 
 private:
 	Scene* scene = NULL;
@@ -32,10 +30,8 @@ private:
 	int width;
 	int height;
 
-	size_t sphereSize;
-	std::vector<Sphere*> spheres;
-	size_t planeSize;
-	std::vector<Plane*> planes;
+	size_t shapeSize;
+	std::vector<Shape*> shapes; 
 	
 	size_t lightSize;
 	std::vector<Light*> lights;
