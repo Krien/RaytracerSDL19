@@ -45,27 +45,27 @@ void Sphere::hit(Ray r, HitInfo* hit)
 	}
 }
 
-void Sphere::hit(Ray8 r, HitInfo8* hit) {
+void Sphere::hit(__m256 ox, __m256 oy, __m256 oz, __m256 dx, __m256 dy, __m256 dz, __m256 len, HitInfo8* hit) {
 	// Vec3Df c = position - r.origin;
 	// float cLenSq = dot_product(c, c); 
-	__m256 cx = _mm256_sub_ps(posX, r.ox);
-	__m256 cy = _mm256_sub_ps(posY, r.oy);
-	__m256 cz = _mm256_sub_ps(posZ, r.oz); 
+	__m256 cx = _mm256_sub_ps(posX, ox);
+	__m256 cy = _mm256_sub_ps(posY, oy);
+	__m256 cz = _mm256_sub_ps(posZ, oz); 
 	
 	/*float t = dot_product(c, r.direction);
 	Vec3Df q = c - Vec3Df(t) * r.direction;
 	float pSquared = dot_product(q, q);*/
-	__m256 t = dot_product(cx, cy, cz, r.dx, r.dy, r.dz);
-	__m256 qx = _mm256_sub_ps(cx, _mm256_mul_ps(r.dx, t));
-	__m256 qy = _mm256_sub_ps(cy, _mm256_mul_ps(r.dy, t));
-	__m256 qz = _mm256_sub_ps(cz, _mm256_mul_ps(r.dz, t));
+	__m256 t = dot_product(cx, cy, cz, dx, dy, dz);
+	__m256 qx = _mm256_sub_ps(cx, _mm256_mul_ps(dx, t));
+	__m256 qy = _mm256_sub_ps(cy, _mm256_mul_ps(dy, t));
+	__m256 qz = _mm256_sub_ps(cz, _mm256_mul_ps(dz, t));
 	__m256 pSquared = dot_product(qx, qy, qz);
 	t = _mm256_sub_ps(t, _mm256_sqrt_ps(_mm256_sub_ps(radiusSq8, pSquared)));
 	
 	// if (cLenSq < radiusSq)
 	__m256 cLenMask = _mm256_cmp_ps(dot_product(cx, cy, cz), radiusSq8, _CMP_LT_OQ);
 	// if (radius < r.length) (inside sphere)
-	__m256 shortMask = _mm256_cmp_ps(radius8, r.len, _CMP_LT_OQ);
+	__m256 shortMask = _mm256_cmp_ps(radius8, len, _CMP_LT_OQ);
 	__m256 inSphereMask = _mm256_and_ps(cLenMask, shortMask);
 	
 	// if (pSquared <= radiusSq)
@@ -83,9 +83,9 @@ void Sphere::hit(Ray8 r, HitInfo8* hit) {
 	HitInfo8 sphereHitInfo = HitInfo8();
 	
 
-	__m256 hitPosX = _mm256_add_ps(r.ox, _mm256_mul_ps(r.dx, radius8));
-	__m256 hitPosY = _mm256_add_ps(r.oy, _mm256_mul_ps(r.dy, radius8));
-	__m256 hitPosZ = _mm256_add_ps(r.oz, _mm256_mul_ps(r.dz, radius8));
+	__m256 hitPosX = _mm256_add_ps(ox, _mm256_mul_ps(dx, radius8));
+	__m256 hitPosY = _mm256_add_ps(oy, _mm256_mul_ps(dy, radius8));
+	__m256 hitPosZ = _mm256_add_ps(oz, _mm256_mul_ps(dz, radius8));
 	AvxVector3 normal = normalize(_mm256_sub_ps(hitPosX, posX), _mm256_sub_ps(hitPosY, posY), _mm256_sub_ps(hitPosZ, posZ));
 	sphereHitInfo.nx = _mm256_sub_ps(_mm256_setzero_ps(), normal.x);
 	sphereHitInfo.ny = _mm256_sub_ps(_mm256_setzero_ps(), normal.y);
@@ -106,9 +106,9 @@ void Sphere::hit(Ray8 r, HitInfo8* hit) {
 	//Vec3Df hitPos = r.origin + r.direction * Vec3Df(t);
 	//Vec3Df normal = normalize_vector(hitPos - position);
 	//*hit = HitInfo{ normal,hitPos,t,mat, id };
-	hitPosX = _mm256_add_ps(r.ox, _mm256_mul_ps(r.dx, t));
-	hitPosY = _mm256_add_ps(r.oy, _mm256_mul_ps(r.dy, t));
-	hitPosZ = _mm256_add_ps(r.oz, _mm256_mul_ps(r.dz, t));
+	hitPosX = _mm256_add_ps(ox, _mm256_mul_ps(dx, t));
+	hitPosY = _mm256_add_ps(oy, _mm256_mul_ps(dy, t));
+	hitPosZ = _mm256_add_ps(oz, _mm256_mul_ps(dz, t));
 	AvxVector3 normal2 = normalize(_mm256_sub_ps(hitPosX, posX), _mm256_sub_ps(hitPosY, posY), _mm256_sub_ps(hitPosZ, posZ));
 	sphereHitInfo.nx = _mm256_blendv_ps(sphereHitInfo.nx, normal2.x, outsideHitMask);
 	sphereHitInfo.ny = _mm256_blendv_ps(sphereHitInfo.ny, normal2.y, outsideHitMask);

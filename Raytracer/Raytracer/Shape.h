@@ -13,7 +13,7 @@ public:
 	__m256 mid8;
 	__m256i id8;
 	virtual void hit(Ray r, HitInfo* current);
-	virtual void hit(Ray8 ray, HitInfo8* hit);
+	virtual void hit(__m256 ox, __m256 oy, __m256 oz, __m256 dx, __m256 dy, __m256 dz, __m256 len, HitInfo8* hit);
 	virtual bool fastHit(Ray r);
 	Material mat;
 	static Mat8* initMatLut8(const Material matLUT[5]);

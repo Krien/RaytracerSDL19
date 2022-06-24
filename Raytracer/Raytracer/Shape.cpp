@@ -59,7 +59,7 @@ Shape::~Shape()
 void Shape::hit(Ray r, HitInfo* hit) {
 	
 }
-void Shape::hit(Ray8 r, HitInfo8* hit) {
+void Shape::hit(__m256 ox, __m256 oy, __m256 oz, __m256 dx, __m256 dy, __m256 dz, __m256 len, HitInfo8* hit) {
 	
 }
 

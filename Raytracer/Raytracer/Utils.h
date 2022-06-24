@@ -1,11 +1,6 @@
 #pragma once
 
 
-struct Ray8 {
-	__m256 ox, oy, oz;
-	__m256 dx, dy, dz;
-	__m256 len;
-};
 struct Mat8 {
 	__m256 ambientX, ambientY, ambientZ;
 	__m256 diffuseX, diffuseY, diffuseZ;
