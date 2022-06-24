@@ -209,11 +209,11 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	__m256 hitDirZ = _mm256_mul_ps(hitInfo.nz, hitDirMult);
 	
 	// float refracIndex = cond ? hitInfo.material.refracIndex : (1 / hitInfo.material.refracIndex);
-	__m256 refracIndex = _mm256_blendv_ps(_mm256_rcp_ps(mat.refracIndex), mat.refracIndex, hitDirMask);
+	__m256 refracIndex = _mm256_blendv_ps(matRefracIndex, _mm256_rcp_ps(matRefracIndex), hitDirMask);
 	
 	// float cosTheta = rayCosTheta(ray, hitNormal, refracIndex);
 	__m256 dotDirNor = dot_product(dx, dy, dz, hitDirX, hitDirY, hitDirZ);
-	__m256 cosTheta = _mm256_sub_ps(one8, _mm256_div_ps(_mm256_mul_ps(_mm256_set1_ps(1.000586f), _mm256_sub_ps(one8, _mm256_mul_ps(dotDirNor, dotDirNor))), _mm256_mul_ps(refracIndex, refracIndex)));
+	__m256 cosTheta = _mm256_sub_ps(one8, _mm256_mul_ps(_mm256_mul_ps(_mm256_set1_ps(1.000586f), _mm256_sub_ps(one8, _mm256_mul_ps(dotDirNor, dotDirNor))), _mm256_mul_ps(refracIndex, refracIndex)));
 	
 	// bool refracted = cosTheta >= 0;
 	__m256 refractedMask = _mm256_cmp_ps(cosTheta, zero8, _CMP_GT_OS);
@@ -222,9 +222,9 @@ AvxVector3 RaySystem::trace(int ind, int depth)
 	// Vec3Df sinPhi = (r.refracIndex * (r.direction - normal * dot_product(r.direction, normal))) / rIndex;
 	// Vec3Df refractDir = normalize_vector(sinPhi - normal * Vec3Df(sqrtf(rayCosTheta)));
 	__m256 mulNormHit = _mm256_mul_ps(hitInfo.nx, dotDirNor);
-	__m256 sinPhiX = _mm256_div_ps(_mm256_mul_ps(_mm256_sub_ps(dx, mulNormHit), _mm256_set1_ps(1.000293f)), refracIndex);
-	__m256 sinPhiY = _mm256_div_ps(_mm256_mul_ps(_mm256_sub_ps(dy, mulNormHit), _mm256_set1_ps(1.000293f)), refracIndex);
-	__m256 sinPhiZ = _mm256_div_ps(_mm256_mul_ps(_mm256_sub_ps(dz, mulNormHit), _mm256_set1_ps(1.000293f)), refracIndex);
+	__m256 sinPhiX = _mm256_mul_ps(_mm256_mul_ps(_mm256_sub_ps(dx, mulNormHit), _mm256_set1_ps(1.000293f)), refracIndex);
+	__m256 sinPhiY = _mm256_mul_ps(_mm256_mul_ps(_mm256_sub_ps(dy, mulNormHit), _mm256_set1_ps(1.000293f)), refracIndex);
+	__m256 sinPhiZ = _mm256_mul_ps(_mm256_mul_ps(_mm256_sub_ps(dz, mulNormHit), _mm256_set1_ps(1.000293f)), refracIndex);
 	__m256 sqrtCosTheta = _mm256_sqrt_ps(cosTheta);
 	__m256 refDirX = _mm256_sub_ps(sinPhiX, _mm256_mul_ps(hitInfo.nx, sqrtCosTheta));
 	__m256 refDirY = _mm256_sub_ps(sinPhiY, _mm256_mul_ps(hitInfo.ny, sqrtCosTheta));
