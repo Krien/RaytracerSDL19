@@ -13,6 +13,6 @@ class Sphere : public Shape
 		Sphere(int id, int mid, Vec3Df position, float radius);
 		~Sphere();
 		void hit(Ray r, HitInfo* hit) override;
-		void hit(__m256 ox, __m256 oy, __m256 oz, __m256 dx, __m256 dy, __m256 dz, __m256 len, HitInfo8* hit) override;
+		void hit(__m256 ox, __m256 oy, __m256 oz, __m256 dx, __m256 dy, __m256 dz, __m256 len, __m256& hitNormX, __m256& hitNormY, __m256& hitNormZ, __m256& hitPosX, __m256& hitPosY, __m256& hitPosZ, __m256& hitDist, __m256& hitMatId) override;
 		bool fastHit(Ray r) override;
 };
