@@ -27,7 +27,7 @@ void Plane::hit(Ray8 ray, HitInfo8* hit)
 {
 	__m256 b = dot_product(ray.dx, ray.dy, ray.dz, nx, ny, nz); 
 	__m256 a = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_add_ps(dist, dot_product(ray.ox, ray.oy, ray.oz, nx, ny, nz)));
-	__m256 t = _mm256_div_ps(a, dot_product(ray.dx, ray.dy, ray.dz, nx, ny, nz));
+	__m256 t = _mm256_div_ps(a, b);
 	__m256 tPositiveMask = _mm256_cmp_ps(t, _mm256_setzero_ps(), _CMP_GE_OS);
 	__m256 closerCollisionMask = _mm256_cmp_ps(t, hit->dist, _CMP_LT_OS);
 	__m256 collisionMask = _mm256_and_ps(tPositiveMask, closerCollisionMask);
