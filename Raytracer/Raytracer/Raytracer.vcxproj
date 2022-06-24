@@ -69,15 +69,7 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>F:\Repositories\RaytracerSDL19\Raytracer\Raytracer\deps\include\vectorclass add-on\vector3d;F:\Repositories\RaytracerSDL19\Raytracer\Raytracer\deps\include\vectorclass;F:\Repositories\RaytracerSDL19\Raytracer\Raytracer\deps\include\SDL2;$(IncludePath)</IncludePath>
-    <LibraryPath>F:\Repositories\RaytracerSDL19\Raytracer\Raytracer\deps\lib\SDL2\x64;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>F:\Repositories\RaytracerSDL19\Raytracer\Raytracer\deps\include\vectorclass add-on\vector3d;F:\Repositories\RaytracerSDL19\Raytracer\Raytracer\deps\include\vectorclass;F:\Repositories\RaytracerSDL19\Raytracer\Raytracer\deps\include\SDL2;$(IncludePath)</IncludePath>
-    <LibraryPath>F:\Repositories\RaytracerSDL19\Raytracer\Raytracer\deps\lib\SDL2\x64;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
+  <PropertyGroup Label="UserMacros" /> 
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>Create</PrecompiledHeader>
