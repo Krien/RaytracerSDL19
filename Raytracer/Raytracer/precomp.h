@@ -8,6 +8,7 @@
 #define RAYSCREEN_HEIGHT 1080
 #define PI 3.1415926
 #define E 2.7182818
+#define MATERIAL_COUNT 5
 
 #define MALLOC64( x ) _aligned_malloc( x, 64 )
 
@@ -22,6 +23,7 @@
 #define RAY_MIGRAINE 0.0001F
 #define BLINN_PHONG_POWER 130
 
+#define SIMD 1 
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -39,6 +41,7 @@ typedef unsigned char Pixel;
 #include <string>
 #include <memory>
 #include <algorithm>
+#include <immintrin.h>
 
 // dependency headers
 #define SDL_MAIN_HANDLED
@@ -60,3 +63,5 @@ typedef unsigned char Pixel;
 #include "Plane.h"
 // Scene logic
 #include "Scene.h"
+// SIMD
+#include "RaySystem.h"

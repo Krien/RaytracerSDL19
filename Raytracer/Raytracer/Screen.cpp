@@ -56,7 +56,7 @@ void Screen::prepareScreen()
 
 void Screen::drawTextureFromBuffer(Pixel* p)
 {
-	SDL_UpdateTexture(texture, NULL, &((*p)), width * 4); //copy entire array only once
+	SDL_UpdateTexture(texture, NULL, &p[0], width * 4); //copy entire array only once
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);

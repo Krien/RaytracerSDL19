@@ -22,5 +22,8 @@ private:
 	Ray mirrorRay(Vec3Df originalDir, HitInfo hit);
 	float rayCosTheta(Ray r, Vec3Df normal, float rIndex);
 	Vec3Df refractRay(Ray r, Vec3Df normal, float rIndex, float rayCosTheta);
+#if SIMD
+	class RaySystem* rs;
+#endif
 };
 

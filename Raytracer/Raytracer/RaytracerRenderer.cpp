@@ -3,7 +3,10 @@
 RaytracerRenderer::RaytracerRenderer(Screen* screen) : Renderer(screen)
 {
 	width = screen->getWidth();
-	height = screen->getHeight();
+	height = screen->getHeight(); 
+#if SIMD
+	rs = new RaySystem(screen); 
+#endif
 }
 
 RaytracerRenderer::~RaytracerRenderer()
@@ -13,57 +16,41 @@ RaytracerRenderer::~RaytracerRenderer()
 void RaytracerRenderer::draw(int iteration)
 {
 	assert(currentScene != NULL && camera != NULL);
+
+	// ok this is kinda scuffed lmao wtf? why are we assigning each iter?
 	shapes = currentScene->objects;
 	shapeSize = shapes.size();
 	lights = currentScene->lights;
 	lightSize = lights.size();
-	Vec3Df rayStartDir = camera->getTopLeft();
-	Vec3Df xOffset = Vec3Df( (camera->getTopRight() - camera->getTopLeft()) / (width - 1));
-	Vec3Df yOffset = Vec3Df((camera->getBottomLeft() - camera->getTopLeft()) / (height - 1));
+	lastId = -1;
+#if SIMD
+	rs->init(currentScene, camera);
+	rs->draw(pixelBuffer);
+#else
+	Vec3Df rayStartDir = camera->getRelTopLeft();
+	float xOffset = (float)SCREEN_DIMENSION * 2 / (width - 1);
+	float yOffset = (float)SCREEN_DIMENSION * 2 / (height - 1);
 	#pragma unroll
 	for (unsigned int y = 0; y < height; y++)
 	{
-		for (unsigned int x = 0; x < width; x+=2)
+		for (unsigned int x = 0; x < width; x++)
 		{
-
-			// Pixel 1.....
 			// Make ray
-			Vec3Df direction = rayStartDir + Vec3Df(x)* xOffset  + Vec3Df(y)*yOffset;
-			direction -= camera->position;
+			Vec3Df direction = rayStartDir + Vec3Df(x * xOffset, y * yOffset, 0);
 			direction = normalize_vector(direction);
-			lastId = -1;
-			Ray r = { camera->position, direction, 100,1.000293f, 1.000586f };
+			Ray r = { camera->position, direction, 100 };
 			// Check for hits
 			Vec3Df argb = trace(r,0) * Vec3Df(255);
 
 			// Convert color
-			unsigned int xy = x*4 + (y * width)*4;
+			unsigned int xy = x * 4 + (y * width) * 4;
 			*(pixelBuffer + xy) = std::min((int)argb.extract(0), 255);
 			*(pixelBuffer + xy+1) = std::min((int)argb.extract(1), 255);
 			*(pixelBuffer + xy+2) = std::min((int)argb.extract(2), 255);
-			*(pixelBuffer + xy+3) = 0;
-
-
-			// Pixel 2....
-			// Make ray
-			direction = rayStartDir + Vec3Df(x+1) * xOffset + Vec3Df(y) * yOffset;
-			direction -= camera->position;
-			direction = normalize_vector(direction);
-			lastId = -1;
-			r = { camera->position, direction, 100,1.000293f, 1.000586f };
-			// Check for hits
-			argb = trace(r, 0) * Vec3Df(255);
-
-			// Pixel 1
-			// Convert color
-			xy = x * 4 + (y * width) * 4;
-			*(pixelBuffer + xy+4) = std::min((int)argb.extract(0),255);
-			*(pixelBuffer + xy + 5) = std::min((int)argb.extract(1),255);
-			*(pixelBuffer + xy + 6) = std::min((int)argb.extract(2), 255);
-			*(pixelBuffer + xy + 7) = 0;
-
+			*(pixelBuffer + xy + 3) = 0;
 		}
 	}
+#endif
 }
 
 Vec3Df RaytracerRenderer::trace(Ray ray, int depth)
@@ -80,80 +67,50 @@ Vec3Df RaytracerRenderer::trace(Ray ray, int depth)
 	{
 		return Vec3Df(0);
 	}
-	if (hitInfo.material.mirror == 0 && hitInfo.material.refracIndex <= 1)
-	{
-		return calculateLight(hitInfo, ray.direction)*hitInfo.material.diffuseColor;
-	}
-	else if(hitInfo.material.refracIndex <= 1)
-	{
-		Vec3Df normalCol = calculateLight(hitInfo, ray.direction) * hitInfo.material.diffuseColor;
-		Vec3Df mirrCol = hitInfo.material.diffuseColor*trace(mirrorRay(ray.direction, hitInfo), depth + 1);
-		Vec3Df finalCol = mirrCol * Vec3Df(hitInfo.material.mirror) + normalCol * (Vec3Df(1 - hitInfo.material.mirror));
-		return finalCol;
-	}
-	else
+
+	if (hitInfo.material.refracIndex > 1)
 	{
 		// Init beers law
 		Vec3Df k = Vec3Df(1);
 		float c = 0;
 		lastId = hitInfo.id;
 
+		bool cond = dot_product(ray.direction, hitInfo.normal) < 0;
+		Vec3Df hitNormal = hitInfo.normal * (cond ? 1 : -1);
+		float refracIndex = cond ? hitInfo.material.refracIndex : (1 / hitInfo.material.refracIndex);
 		// Obtuse angle
-		if (dot_product(ray.direction, hitInfo.normal) < 0)
+		float cosTheta = rayCosTheta(ray, hitNormal, refracIndex);
+		bool refracted = cosTheta >= 0;
+		Vec3Df refractDir = refracted ? refractRay(ray, hitNormal, refracIndex, cosTheta) : Vec3Df(0);
+		if (!cond)
 		{
-			float cosTheta = rayCosTheta(ray, hitInfo.normal, hitInfo.material.refracIndex);
-			bool refracted = cosTheta >= 0;
-			Vec3Df refractDir =  refracted ? refractRay(ray, hitInfo.normal, hitInfo.material.refracIndex, cosTheta) : Vec3Df(0);
-			Ray refractedRay = { hitInfo.hitPos + refractDir * Vec3Df(RAY_MIGRAINE), refractDir, 1000 };
-			c = dot_product(-ray.direction, hitInfo.normal);
-			// Calculate the reflectance at normal incidence.
-			float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
-			// Calculate schlick's approximation (amount of % the refraction contributes to the total).
-			float R = R0 + (1 - R0) * pow((1 - c), 5);
-			// The ray has now hit something refractive, if two spheres border each other we want them to refract off each other's indices and not the indice of air, and thus we set the last hit refract indice for the ray.
-			if (lastId == hitInfo.id)
+			if (!refracted)
 			{
-				ray.refracIndex = 1.000293f;
-				ray.refracIndex2 = 1.000586f;
+				return trace(mirrorRay(ray.direction, hitInfo), depth + 1);
 			}
-			else
-			{
-				ray.refracIndex = hitInfo.material.refracIndex;
-				ray.refracIndex2 = hitInfo.material.refracIndex * hitInfo.material.refracIndex;
-			}
-			// Return percentage of mirror and refraction that results from the above calculations, where R is the amount reflected and 1-R the amount refracted.
-			return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
+			Vec3Df power = -hitInfo.material.absorbtion * refractDir;
+			k = Vec3Df(pow(E, power[0]), pow(E, power[1]), pow(E, power[2]));
+		}
+		Ray refractedRay = { hitInfo.hitPos + refractDir * Vec3Df(RAY_MIGRAINE), refractDir, 1000 };
+		Vec3Df rayDir = cond ? -ray.direction : ray.direction;
+		c = dot_product(rayDir, hitInfo.normal);
+		float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
+		float c_comp = 1 - c;
+		float R = R0 + (1 - R0) * c_comp * c_comp * c_comp * c_comp * c_comp;
+		return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
+	}
+	else
+	{
+		Vec3Df normalCol = calculateLight(hitInfo, ray.direction) * hitInfo.material.diffuseColor;
+		if (hitInfo.material.mirror == 0)
+		{
+			return normalCol;
 		}
 		else
 		{
-			float cosTheta = rayCosTheta(ray, -hitInfo.normal, 1/hitInfo.material.refracIndex);
-			bool refracted = cosTheta >= 0;
-			Vec3Df refractDir = refracted ? refractRay(ray, -hitInfo.normal, 1/hitInfo.material.refracIndex, cosTheta) : Vec3Df(0);
-			Vec3Df power = -hitInfo.material.absorbtion * refractDir;
-			k = Vec3Df(pow(E, power[0]), pow(E, power[1]), pow(E, power[2]));
-			if (!refracted)
-			{
-				return k * trace(mirrorRay(ray.direction, hitInfo), depth + 1);
-			}
-			Ray refractedRay = { hitInfo.hitPos + refractDir * Vec3Df(RAY_MIGRAINE), refractDir, 1000 };
-			c = dot_product(ray.direction, hitInfo.normal);
-			// Calculate the reflectance at normal incidence.
-			float R0 = ((hitInfo.material.refracIndex - 1) * (hitInfo.material.refracIndex - 1)) / ((hitInfo.material.refracIndex + 1) * (hitInfo.material.refracIndex + 1));
-			// Calculate schlick's approximation (amount of % the refraction contributes to the total).
-			float R = R0 + (1 - R0) * pow((1 - c), 5);
-			// The ray has now hit something refractive, if two spheres border each other we want them to refract off each other's indices and not the indice of air, and thus we set the last hit refract indice for the ray.
-			if (lastId == hitInfo.id)
-			{
-				ray.refracIndex = 1.000293f;
-				ray.refracIndex2 = 1.000586f;
-			}
-			else
-			{
-				ray.refracIndex = hitInfo.material.refracIndex;
-				ray.refracIndex2 = hitInfo.material.refracIndex* hitInfo.material.refracIndex;
-			}
-			// Return percentage of mirror and refraction that results from the above calculations, where R is the amount reflected and 1-R the amount refracted.
-			return  k * (R * trace(mirrorRay(ray.direction, hitInfo), depth + 1)) + (1 - R) * trace(refractedRay, depth + 1);
+			Vec3Df mirrCol = hitInfo.material.diffuseColor * trace(mirrorRay(ray.direction, hitInfo), depth + 1);
+			Vec3Df finalCol = mirrCol * Vec3Df(hitInfo.material.mirror) + normalCol * (Vec3Df(1 - hitInfo.material.mirror));
+			return finalCol;
 		}
 	}
 }
@@ -164,19 +121,12 @@ Vec3Df RaytracerRenderer::calculateLight(HitInfo hitI, Vec3Df direction)
 	for (Light* l : lights)
 	{
 		Vec3Df lightDist = l->position - hitI.hitPos;
-		Vec3Df lightV = normalize_vector(lightDist);
 		//If we cannot reach this light from the intersection point we go on to the next light.
 		if (dot_product(hitI.normal, lightDist) < 0)
 			continue;
+		Vec3Df lightV = normalize_vector(lightDist);
 		// blocked
-		Vec3Df shadowOrigin = hitI.hitPos + lightV * Vec3Df(RAY_MIGRAINE);
 		float shadowLength = (float)(vector_length(lightDist) - 2 * RAY_MIGRAINE);
-		Ray shadowR = { shadowOrigin, lightV, shadowLength };
-		for (size_t i = 0; i < shapeSize; i++)
-		{
-			if (shapes[i]->fastHit(shadowR))
-				continue;
-		}
 		// Diffuse
 		Vec3Df halfVector = normalize_vector(lightV - direction);
 		Vec3Df diffuse = l->intensity / vector_length(lightDist);
@@ -195,7 +145,7 @@ Ray RaytracerRenderer::mirrorRay(Vec3Df originalDir, HitInfo hitSurface)
 {
 	Vec3Df mirrDir = originalDir - (hitSurface.normal * Vec3Df((2.0f * dot_product(originalDir, hitSurface.normal))));
 	mirrDir = normalize_vector(mirrDir);
-	Ray mirrorRay = Ray{ hitSurface.hitPos + Vec3Df(RAY_MIGRAINE) * mirrDir, mirrDir, 1000,1.000293f, 1.000586f };
+	Ray mirrorRay = Ray{ hitSurface.hitPos + Vec3Df(RAY_MIGRAINE) * mirrDir, mirrDir, 1000 };
 	return mirrorRay;
 }
 
